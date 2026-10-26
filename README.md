@@ -10,7 +10,7 @@ ThermoFEM 是本科毕业设计“基于有限元的热力学仿真求解器设�
 - 封装求解器接口并导出仿真结果，提供展示模型配置、求解过程和温度场结果的 Demo。
 - 通过典型算例与解析解或成熟仿真软件对比，验证计算精度与求解性能。
 
-目前处于项目初始化阶段，仅提供版本接口、主程序、首个示例和测试用例；上述求解功能尚未实现。空间维度、单元类型及具体求解算法将在后续确定。
+目前已提供版本接口、主程序及基础数据结构：支持 global、pinned、mapped、managed 策略的 RAII CUDA Buffer，以及向量、行主序稠密矩阵和 CSR 稀疏矩阵，配有示例与测试。上述求解功能尚未实现。空间维度、单元类型及具体求解算法将在后续确定。
 
 ## 项目结构
 
@@ -18,6 +18,7 @@ ThermoFEM 是本科毕业设计“基于有限元的热力学仿真求解器设�
 ThermoFEM/
 ├── src/                       # CUDA 实现与主程序，.cu
 ├── include/thermofem/          # 公共头文件，.cuh
+├── include/DataStructure/      # CUDA Buffer、向量、稠密与 CSR 矩阵
 ├── test/                      # GoogleTest 测试，.cpp，独立 CMakeLists.txt
 ├── example/                   # CUDA 示例，独立 CMakeLists.txt
 ├── scripts/build-docs.sh       # 一键构建文档
@@ -40,7 +41,7 @@ ThermoFEM/
 - GoogleTest：优先使用已安装的 CMake 包；未找到时自动获取 `v1.17.0`，首次配置需要访问 GitHub。可通过 `FETCHCONTENT_SOURCE_DIR_GOOGLETEST` 指定离线源码目录。
 - Doxygen（生成文档时需要，不依赖 Graphviz 或 LaTeX）。
 
-默认编译架构为 `75`，请根据目标 GPU 和 Toolkit 支持范围设置 `CMAKE_CUDA_ARCHITECTURES`；例如 Ada GPU 可指定 `89`。初始化示例和测试仅调用宿主端版本接口，不启动 GPU 内核。
+默认编译架构为 `75`，请根据目标 GPU 和 Toolkit 支持范围设置 `CMAKE_CUDA_ARCHITECTURES`；例如 Ada GPU 可指定 `89`。`example-1` 仅调用版本接口；`example-2` 包含真实 CUDA 内核，并要求设备支持映射内存和统一内存。测试在设备不可用时明确跳过 GPU 用例。
 
 ## 构建与运行
 
@@ -51,6 +52,7 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --parallel
 ./build/thermofem
 ./build/example/example-1
+./build/example/example-2
 ctest --test-dir build --output-on-failure
 ```
 
@@ -87,6 +89,8 @@ target_link_libraries(your_target PRIVATE ThermoFEM::thermofem)
 配置使用方时传入 `-DCMAKE_PREFIX_PATH=/path/to/ThermoFEM/install`，并确保 CUDA Toolkit 可被找到。
 
 ## 文档
+
+基础数据结构的接口、内存策略、复制与移动语义及同步要求见 [基础数据结构](docs/data-structures.md)。
 
 在任意目录执行项目脚本即可生成中文 Doxygen 文档：
 
