@@ -107,6 +107,11 @@ bash scripts/build-docs.sh
 
 本项目用于个人本科毕业设计，原则上不接受任何外部贡献，包括代码、文档或其他形式的提交；请勿提交 Pull Request。
 
+## 算法参考
+
+Jacobi、AMG 与 BiCGStab 部分的算法组织参考作者 Mgepahmge 的非公开项目 **YHAMG-GPU**。
+参考项目不作为公开依赖分发；本项目保持独立的接口、实现与测试。
+
 ## 许可证
 
 本项目采用 [MIT License](LICENSE)。第三方依赖遵循各自的许可证。

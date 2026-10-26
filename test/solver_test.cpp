@@ -2,6 +2,7 @@
  * @brief 验证平滑、预条件和求解接口的数学行为及生命周期。
  */
 #include <Smoother/Jacobi.cuh>
+#include <Preconditioner/Amg.cuh>
 #include <gtest/gtest.h>
 #include <limits>
 
@@ -88,5 +89,57 @@ TYPED_TEST(SolverTest, contextOwnsSnapshotAndSupportsWideIndices) {
     const auto output = linalg::detail::hostCopy(y);
     EXPECT_NEAR(output[0], 0, 1e-6); EXPECT_NEAR(output[1], 3, 1e-6);
     EXPECT_THROW(context.multiply(x, const_cast<Vector<T>&>(x)), std::invalid_argument);
+}
+TYPED_TEST(SolverTest, amgCycleReducesResidualAndIsLinear) {
+    using T = TypeParam;
+    const auto a = poisson<T>(127);
+    Amg<T> amg;
+    Vector<T> uninitialized(127);
+    EXPECT_THROW(amg.apply(uninitialized, uninitialized), std::logic_error);
+    amg.setup(a);
+    ASSERT_GE(amg.levelCount(), 3u);
+    const std::vector<T> ones(127, 1), zeros(127, 0);
+    Vector<T> rhs{std::span<const T>(ones)}, x{std::span<const T>(zeros)};
+    linalg::IterationContext<T> context(a);
+    Vector<T> residual(127);
+    amg.apply(rhs, x);
+    context.multiply(x, residual); context.axpy(T(-1), rhs, residual);
+    const auto first = linalg::detail::hostCopy(x);
+    // V-cycle 是误差校正，低频右端项的一次校正不保证残差二范数单调。
+    T errorSquared{}, exactSquared{};
+    for (std::size_t i = 0; i < first.size(); ++i) {
+        const T exact = T(i+1)*T(127-i)/T(2);
+        errorSquared += (first[i]-exact)*(first[i]-exact); exactSquared += exact*exact;
+    }
+    EXPECT_LT(std::sqrt(errorSquared/exactSquared), T(0.5));
+    context.scale(T(2), rhs); amg.apply(rhs, x);
+    const auto second = linalg::detail::hostCopy(x);
+    const T tolerance = std::same_as<T, float> ? T(1e-2) : T(1e-9);
+    for (std::size_t i = 0; i < first.size(); ++i) { EXPECT_NEAR(second[i], 2*first[i], tolerance); }
+    amg.apply(rhs, rhs);
+    const auto aliased = linalg::detail::hostCopy(rhs);
+    for (std::size_t i = 0; i < first.size(); ++i) { EXPECT_NEAR(aliased[i], second[i], tolerance); }
+}
+TYPED_TEST(SolverTest, amgCoarsePivotAndFailurePreservesState) {
+    using T = TypeParam;
+    const std::vector<int> offsets{0, 1, 3}, columns{1, 0, 1};
+    const std::vector<T> values{1, 1, 2}, b{2, 5};
+    const CsrMatrix<T> a(2, 2, offsets, columns, values);
+    Amg<T> amg; amg.setup(a);
+    Vector<T> rhs(std::span<const T>(b), PinnedMemory{}), x(2, PinnedMemory{});
+    amg.apply(rhs, x);
+    auto result = linalg::detail::hostCopy(x);
+    EXPECT_NEAR(result[0], 1, 1e-5); EXPECT_NEAR(result[1], 2, 1e-5);
+    const std::vector<int> fullOffsets{0, 2, 4}, fullColumns{0, 1, 0, 1};
+    const std::vector<T> singular{1, 1, 1, 1};
+    EXPECT_THROW(amg.setup(CsrMatrix<T>(2, 2, fullOffsets, fullColumns, singular)), std::invalid_argument);
+    EXPECT_NO_THROW(amg.apply(rhs, x));
+    EXPECT_EQ(x.memoryType(), MemoryType::Pinned);
+    AmgOptions<T> options; options.maxLevels_ = 1; options.coarseRows_ = 2; options.maxDenseCoarseRows_ = 4;
+    Amg<T> bounded(options);
+    EXPECT_THROW(bounded.setup(poisson<T>(10)), std::invalid_argument);
+    EXPECT_EQ(bounded.levelCount(), 0u);
+    options.maxLevels_ = 0;
+    EXPECT_THROW((Amg<T>(options)), std::invalid_argument);
 }
 } // namespace
