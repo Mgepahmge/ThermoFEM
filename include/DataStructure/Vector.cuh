@@ -17,6 +17,7 @@ namespace thermofem {
 template<BufferElement T>
 class Vector : public CudaBuffer<T> {
 public:
+    using ValueType = T; ///< 向量元素类型。
     using CudaBuffer<T>::CudaBuffer;
 };
 } // 命名空间 thermofem

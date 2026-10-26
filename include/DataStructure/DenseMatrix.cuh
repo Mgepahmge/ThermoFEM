@@ -19,6 +19,7 @@ namespace thermofem {
 template<BufferElement T>
 class DenseMatrix {
 public:
+    using ValueType = T; ///< 矩阵元素类型。
     /** @brief 创建空矩阵，无参数、无额外约束。@return 无返回值。
      * @code thermofem::DenseMatrix<double> matrix; @endcode
      */
@@ -77,6 +78,11 @@ public:
      * @return 无返回值。@code matrix.copyFromHost(values); @endcode
      */
     void copyFromHost(std::span<const T> values) { values_.copyFromHost(values); }
+    /** @brief 从缓冲区导入全部元素，保留矩阵形状、策略与地址。@param values 来源。
+     * @pre 元素数相同且设备一致，异步访问已结束。@return 无返回值。
+     * @code matrix.copyValuesFrom(buffer); @endcode
+     */
+    void copyValuesFrom(const CudaBuffer<T>& values) { values_.copyDataFrom(values); }
     /** @brief 按行主序导出至主机。@param values 主机数组。@pre 元素数匹配且异步访问已结束。
      * @return 无返回值。@code matrix.copyToHost(values); @endcode
      */

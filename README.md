@@ -10,7 +10,7 @@ ThermoFEM 是本科毕业设计“基于有限元的热力学仿真求解器设�
 - 封装求解器接口并导出仿真结果，提供展示模型配置、求解过程和温度场结果的 Demo。
 - 通过典型算例与解析解或成熟仿真软件对比，验证计算精度与求解性能。
 
-目前已提供版本接口、主程序及基础数据结构：支持 global、pinned、mapped、managed 策略的 RAII CUDA Buffer，以及向量、行主序稠密矩阵和 CSR 稀疏矩阵，配有示例与测试。上述求解功能尚未实现。空间维度、单元类型及具体求解算法将在后续确定。
+目前已提供版本接口、主程序及基础数据结构：支持 global、pinned、mapped、managed 策略的 RAII CUDA Buffer，以及向量、行主序稠密矩阵和 CSR 稀疏矩阵。线性代数层使用 cuBLAS/cuSPARSE，提供命名函数与运算符，配有示例与测试。有限元组装与热传导仿真尚未实现。
 
 ## 项目结构
 
@@ -19,6 +19,7 @@ ThermoFEM/
 ├── src/                       # CUDA 实现与主程序，.cu
 ├── include/thermofem/          # 公共头文件，.cuh
 ├── include/DataStructure/      # CUDA Buffer、向量、稠密与 CSR 矩阵
+├── include/LinearAlgebra/      # cuBLAS/cuSPARSE 运算与运算符
 ├── test/                      # GoogleTest 测试，.cpp，独立 CMakeLists.txt
 ├── example/                   # CUDA 示例，独立 CMakeLists.txt
 ├── scripts/build-docs.sh       # 一键构建文档
@@ -53,6 +54,7 @@ cmake --build build --parallel
 ./build/thermofem
 ./build/example/example-1
 ./build/example/example-2
+./build/example/example-3
 ctest --test-dir build --output-on-failure
 ```
 
@@ -91,6 +93,7 @@ target_link_libraries(your_target PRIVATE ThermoFEM::thermofem)
 ## 文档
 
 基础数据结构的接口、内存策略、复制与移动语义及同步要求见 [基础数据结构](docs/data-structures.md)。
+线性代数接口及当前限制见 [线性代数](docs/linear-algebra.md)。
 
 在任意目录执行项目脚本即可生成中文 Doxygen 文档：
 

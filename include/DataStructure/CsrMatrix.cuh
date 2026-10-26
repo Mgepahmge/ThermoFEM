@@ -28,6 +28,7 @@ concept CsrIndex = std::signed_integral<T> && (sizeof(T) == 4 || sizeof(T) == 8)
 template<BufferElement T, CsrIndex Index = std::int32_t>
 class CsrMatrix {
 public:
+    using ValueType = T; ///< 非零元素类型。
     /** @brief 创建无存储的空矩阵，无参数、无额外约束。@return 无返回值。
      * @code thermofem::CsrMatrix<double> matrix; @endcode
      */
