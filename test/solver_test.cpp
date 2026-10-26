@@ -3,6 +3,8 @@
  */
 #include <Smoother/Jacobi.cuh>
 #include <Preconditioner/Amg.cuh>
+#include <Preconditioner/Identity.cuh>
+#include <Solver/BiCgStab.cuh>
 #include <gtest/gtest.h>
 #include <limits>
 
@@ -90,7 +92,7 @@ TYPED_TEST(SolverTest, contextOwnsSnapshotAndSupportsWideIndices) {
     EXPECT_NEAR(output[0], 0, 1e-6); EXPECT_NEAR(output[1], 3, 1e-6);
     EXPECT_THROW(context.multiply(x, const_cast<Vector<T>&>(x)), std::invalid_argument);
 }
-TYPED_TEST(SolverTest, amgCycleReducesResidualAndIsLinear) {
+TYPED_TEST(SolverTest, amgCycleReducesErrorAndIsLinear) {
     using T = TypeParam;
     const auto a = poisson<T>(127);
     Amg<T> amg;
@@ -141,5 +143,157 @@ TYPED_TEST(SolverTest, amgCoarsePivotAndFailurePreservesState) {
     EXPECT_EQ(bounded.levelCount(), 0u);
     options.maxLevels_ = 0;
     EXPECT_THROW((Amg<T>(options)), std::invalid_argument);
+}
+TYPED_TEST(SolverTest, bicgstabAmgSolvesPoissonAndReportsTrueResidual) {
+    using T = TypeParam;
+    const int n = 63;
+    const auto a = poisson<T>(n);
+    BiCgStabOptions<T> options;
+    options.relativeTolerance_ = std::same_as<T, float> ? T(2e-4) : T(1e-9);
+    BiCgStab<T> solver(options);
+    solver.setup(a);
+    const std::vector<T> b(n, 1), initial(n, 0);
+    Vector<T> rhs(std::span<const T>(b), PinnedMemory{}), x(std::span<const T>(initial), PinnedMemory{});
+    auto* address = x.data();
+    const auto result = solver.apply(rhs, x);
+    ASSERT_EQ(result.status_, SolveStatus::Converged);
+    EXPECT_LT(result.iterations_, 100);
+    EXPECT_EQ(x.data(), address); EXPECT_EQ(x.memoryType(), MemoryType::Pinned);
+    const auto actual = linalg::detail::hostCopy(x);
+    double residualSquared{};
+    for (int i = 0; i < n; ++i) {
+        const double exact = double(i+1)*double(n-i)/2;
+        EXPECT_NEAR(actual[i], exact, exact*(std::same_as<T, float> ? 1e-3 : 1e-8));
+        const double residual = 1-2*double(actual[i])+(i ? double(actual[i-1]) : 0)+(i+1<n ? double(actual[i+1]) : 0);
+        residualSquared += residual*residual;
+    }
+    EXPECT_NEAR(result.residualNorm_, std::sqrt(residualSquared), (std::same_as<T, float> ? 1e-3 : 1e-10));
+    EXPECT_LE(result.relativeResidual_, options.relativeTolerance_);
+    const auto repeated = solver.apply(rhs, x);
+    EXPECT_EQ(repeated.status_, SolveStatus::Converged); EXPECT_EQ(repeated.iterations_, 0);
+    // 输入输出别名时初值等于右端项，仍应求得同一解。
+    rhs.copyFromHost(b);
+    EXPECT_EQ(solver.apply(rhs, rhs).status_, SolveStatus::Converged);
+}
+TYPED_TEST(SolverTest, bicgstabIdentitySolvesNonsymmetricWithResidualRefresh) {
+    using T = TypeParam;
+    const int n = 80;
+    const auto a = poisson<T>(n, true);
+    std::vector<T> exact(n), b(n), initial(n, T(0.2));
+    for (int i = 0; i < n; ++i) { exact[i] = T(1)+T(i%7)/T(7); }
+    for (int i = 0; i < n; ++i) { b[i] = 3*exact[i]-(i ? exact[i-1] : 0)-T(0.5)*(i+1<n ? exact[i+1] : 0); }
+    BiCgStabOptions<T> options;
+    options.residualRefreshInterval_ = 3;
+    options.relativeTolerance_ = std::same_as<T, float> ? T(1e-5) : T(1e-11);
+    std::unique_ptr<Solver<T>> solver = std::make_unique<BiCgStab<T>>(options, std::make_unique<Identity<T>>());
+    solver->setup(a);
+    Vector<T> rhs{std::span<const T>(b)}, x{std::span<const T>(initial)};
+    const auto report = solver->apply(rhs, x);
+    ASSERT_EQ(report.status_, SolveStatus::Converged);
+    const auto actual = linalg::detail::hostCopy(x);
+    for (int i = 0; i < n; ++i) { EXPECT_NEAR(actual[i], exact[i], (std::same_as<T, float> ? 1e-4 : 1e-9)); }
+}
+TYPED_TEST(SolverTest, bicgstabZeroRhsAndInitialGuess) {
+    using T = TypeParam;
+    BiCgStabOptions<T> options;
+    options.absoluteTolerance_ = std::same_as<T, float> ? T(1e-5) : T(1e-12);
+    BiCgStab<T> solver(options, std::make_unique<Identity<T>>());
+    solver.setup(poisson<T>(5));
+    const std::vector<T> zeros(5, 0), ones(5, 1);
+    Vector<T> rhs{std::span<const T>(zeros)}, x{std::span<const T>(zeros)};
+    auto report = solver.apply(rhs, x);
+    EXPECT_EQ(report.status_, SolveStatus::Converged); EXPECT_EQ(report.iterations_, 0);
+    x.copyFromHost(ones); report = solver.apply(rhs, x);
+    EXPECT_EQ(report.status_, SolveStatus::Converged);
+    EXPECT_LE(report.residualNorm_, options.absoluteTolerance_);
+    EXPECT_EQ(report.relativeResidual_, report.residualNorm_);
+}
+TYPED_TEST(SolverTest, bicgstabReportsLimitBreakdownAndNonfinite) {
+    using T = TypeParam;
+    const auto a = poisson<T>(3, true);
+    const std::vector<T> b{1, 2, 3}, zeros(3, 0);
+    Vector<T> rhs{std::span<const T>(b)}, x{std::span<const T>(zeros)};
+    BiCgStabOptions<T> options; options.maxIterations_ = 0;
+    BiCgStab<T> limited(options, std::make_unique<Identity<T>>()); limited.setup(a);
+    auto result = limited.apply(rhs, x);
+    EXPECT_EQ(result.status_, SolveStatus::MaxIterations); EXPECT_EQ(result.iterations_, 0);
+    options.maxIterations_ = 1; options.relativeTolerance_ = 0;
+    BiCgStab<T> oneStep(options, std::make_unique<Identity<T>>()); oneStep.setup(a);
+    result = oneStep.apply(rhs, x);
+    EXPECT_EQ(result.status_, SolveStatus::MaxIterations); EXPECT_EQ(result.iterations_, 1);
+    const std::vector<int> offsets{0, 0, 0, 0}, columns;
+    const std::vector<T> values;
+    const CsrMatrix<T> zeroMatrix(3, 3, offsets, columns, values);
+    BiCgStab<T> solver({}, std::make_unique<Identity<T>>()); solver.setup(zeroMatrix);
+    x.copyFromHost(zeros);
+    result = solver.apply(rhs, x);
+    EXPECT_EQ(result.status_, SolveStatus::Breakdown);
+    EXPECT_NEAR(result.residualNorm_, std::sqrt(14.0), 1e-5);
+    auto invalid = b; invalid[1] = std::numeric_limits<T>::quiet_NaN(); rhs.copyFromHost(invalid);
+    EXPECT_EQ(solver.apply(rhs, x).status_, SolveStatus::NonFinite);
+}
+TYPED_TEST(SolverTest, bicgstabLifecycleWideIndicesAndFailedSetup) {
+    using T = TypeParam;
+    BiCgStab<T, std::int64_t> solver;
+    const std::vector<T> b{1, 0}, initial{0, 0};
+    Vector<T> rhs{std::span<const T>(b)}, x{std::span<const T>(initial)};
+    EXPECT_THROW(solver.apply(rhs, x), std::logic_error);
+    solver.setup(poisson<T, std::int64_t>(2));
+    EXPECT_EQ(solver.apply(rhs, x).status_, SolveStatus::Converged);
+    Vector<T> wrong(3);
+    EXPECT_THROW(solver.apply(wrong, x), std::invalid_argument);
+    EXPECT_THROW(solver.setup(CsrMatrix<T, std::int64_t>{}), std::invalid_argument);
+    EXPECT_THROW(solver.apply(rhs, x), std::logic_error);
+    solver.setup(poisson<T, std::int64_t>(2));
+    EXPECT_EQ(solver.apply(rhs, x).status_, SolveStatus::Converged);
+    BiCgStabOptions<T> options; options.relativeTolerance_ = -1;
+    EXPECT_THROW((BiCgStab<T>(options)), std::invalid_argument);
+}
+TYPED_TEST(SolverTest, amgAcceptsIndependentSmootherFactory) {
+    using T = TypeParam;
+    int created{};
+    Amg<T> amg({}, [&created]() -> std::unique_ptr<Smoother<T>> {
+        ++created; return std::make_unique<Jacobi<T>>(3, T(0.6));
+    });
+    amg.setup(poisson<T>(63));
+    EXPECT_EQ(static_cast<std::size_t>(created), amg.levelCount()-1);
+    Amg<T> invalid({}, []() -> std::unique_ptr<Smoother<T>> { return {}; });
+    EXPECT_THROW(invalid.setup(poisson<T>(63)), std::invalid_argument);
+}
+TYPED_TEST(SolverTest, solverPreservesAllSupportedMemoryPolicies) {
+    using T = TypeParam;
+    BiCgStab<T> solver; solver.setup(poisson<T>(3));
+    std::vector<MemoryStrategy> policies{GlobalMemory{}, PinnedMemory{}};
+    int supported{};
+    if (cudaDeviceGetAttribute(&supported, cudaDevAttrCanMapHostMemory, 0) == cudaSuccess && supported) { policies.emplace_back(MappedMemory{}); }
+    if (cudaDeviceGetAttribute(&supported, cudaDevAttrManagedMemory, 0) == cudaSuccess && supported) { policies.emplace_back(ManagedMemory{}); }
+    const std::vector<T> b{1, 0, 1}, initial(3, 0);
+    for (const auto& inputPolicy : policies) {
+        const Vector<T> rhs(std::span<const T>(b), inputPolicy);
+        for (const auto& outputPolicy : policies) {
+            Vector<T> x(std::span<const T>(initial), outputPolicy);
+            const auto type = x.memoryType(); auto* address = x.data();
+            ASSERT_EQ(solver.apply(rhs, x).status_, SolveStatus::Converged);
+            EXPECT_EQ(x.memoryType(), type); EXPECT_EQ(x.data(), address);
+            for (T value : linalg::detail::hostCopy(x)) { EXPECT_NEAR(value, 1, 1e-5); }
+        }
+    }
+}
+TYPED_TEST(SolverTest, emptyPatternKeepsOwnerDeviceAndRestoresCaller) {
+    using T = TypeParam;
+    int count{}; ASSERT_EQ(cudaGetDeviceCount(&count), cudaSuccess);
+    if (count < 2) { GTEST_SKIP() << "Requires two devices"; }
+    ASSERT_EQ(cudaSetDevice(1), cudaSuccess);
+    const std::vector<int> offsets{0, 0, 0}, columns;
+    const std::vector<T> values, ones(2, 1), zeros(2, 0);
+    const CsrMatrix<T> a(2, 2, offsets, columns, values);
+    Vector<T> rhs{std::span<const T>(ones)}, x{std::span<const T>(zeros)};
+    ASSERT_EQ(cudaSetDevice(0), cudaSuccess);
+    BiCgStab<T> solver({}, std::make_unique<Identity<T>>()); solver.setup(a);
+    EXPECT_EQ(solver.apply(rhs, x).status_, SolveStatus::Breakdown);
+    int current{}; ASSERT_EQ(cudaGetDevice(&current), cudaSuccess); EXPECT_EQ(current, 0);
+    Vector<T> wrong(2);
+    EXPECT_THROW(solver.apply(wrong, x), std::invalid_argument);
+    ASSERT_EQ(cudaGetDevice(&current), cudaSuccess); EXPECT_EQ(current, 0);
 }
 } // namespace

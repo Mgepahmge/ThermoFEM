@@ -39,6 +39,10 @@ public:
      * @code context.residual(rhs, x, out); @endcode
      */
     void residual(const Vector<T>& rhs, const Vector<T>& x, Vector<T>& out);
+    /** @brief 将工作向量清零。@param x 输入输出。@pre 同设备 global 向量。
+     * @return 无返回值。@code context.clear(x); @endcode
+     */
+    void clear(Vector<T>& x);
     /** @brief 执行 y+=alpha*x。@param alpha 系数。@param x 输入。@param y 输出。
      * @pre 等长 global 向量，同设备。@return 无返回值。@code context.axpy(1, x, y); @endcode
      */

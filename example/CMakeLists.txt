@@ -6,3 +6,6 @@ target_link_libraries(example-2 PRIVATE ThermoFEM::thermofem)
 
 add_executable(example-3 example-3.cu)
 target_link_libraries(example-3 PRIVATE ThermoFEM::thermofem)
+
+add_executable(example-4 example-4.cu)
+target_link_libraries(example-4 PRIVATE ThermoFEM::thermofem)

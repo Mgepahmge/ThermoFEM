@@ -28,7 +28,7 @@ public:
      */
     void setup(const CsrMatrix<T, I>& matrix) override {
         iteration::validateMatrix(matrix);
-        linalg::detail::OperationScope scope(matrix.values().deviceId());
+        linalg::detail::OperationScope scope(matrix.rowOffsets().deviceId());
         auto next = std::make_unique<State>(matrix);
         next->inverse_ = linalg::inverseDiagonal(next->context_.matrix());
         state_ = std::move(next);
@@ -41,7 +41,7 @@ public:
         if (!state_) { throw std::logic_error("Jacobi requires setup"); }
         auto& s = *state_;
         const auto& matrix = s.context_.matrix();
-        iteration::validateVectors(matrix.rowCount(), matrix.values().deviceId(), rhs, x);
+        iteration::validateVectors(matrix.rowCount(), matrix.rowOffsets().deviceId(), rhs, x);
         s.rhs_.copyDataFrom(rhs); s.x_.copyDataFrom(x);
         for (int sweep = 0; sweep < sweeps_; ++sweep) {
             s.context_.multiply(s.x_, s.product_);

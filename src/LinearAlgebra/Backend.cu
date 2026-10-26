@@ -225,6 +225,9 @@ void sparseMm(const CsrMatrix<T, I>& matrix, std::size_t columns, const T* b, T*
 }
 
 template<Scalar T> SparseHostData<T> sparseAdd(const CsrMatrix<T, int>& a, const CsrMatrix<T, int>& b, T beta) {
+    if (a.nonZeroCount() > static_cast<std::size_t>(std::numeric_limits<int>::max())-b.nonZeroCount()) {
+        throw std::length_error("Sparse addition may exceed 32-bit structural range");
+    }
     SparseHandle handle;
     check(cusparseCreate(handle.address()), "cusparseCreate");
     LegacyDescriptor descriptor;

@@ -14,7 +14,7 @@ template<Scalar T, CsrIndex I> Vector<T> inverseDiagonal(const CsrMatrix<T, I>& 
     if (!matrix.rowCount() || matrix.rowCount() != matrix.columnCount()) {
         throw std::invalid_argument("Inverse diagonal requires a nonempty square matrix");
     }
-    detail::OperationScope scope(matrix.values().deviceId());
+    detail::OperationScope scope(matrix.rowOffsets().deviceId());
     const auto offsets = detail::hostCopy(matrix.rowOffsets());
     const auto columns = detail::hostCopy(matrix.columnIndices());
     const auto values = detail::hostCopy(matrix.values());

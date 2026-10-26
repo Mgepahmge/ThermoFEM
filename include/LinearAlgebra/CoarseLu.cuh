@@ -51,6 +51,7 @@ public:
      */
     void apply(const Vector<T>& rhs, Vector<T>& x) {
         if (rhs.size() != n_ || x.size() != n_) { throw std::invalid_argument("Coarse LU vector shape mismatch"); }
+        detail::commonDevice({rhs.deviceId(), x.deviceId()});
         rhs.copyToHost(rhs_);
         for (std::size_t k = 0; k < n_; ++k) { std::swap(rhs_[k], rhs_[pivots_[k]]); }
         for (std::size_t row = 0; row < n_; ++row) {

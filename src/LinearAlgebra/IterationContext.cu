@@ -21,8 +21,8 @@ void check(S status) {
  * @pre 设备地址有效且等长。@return 无返回值。@code update<<<1,256>>>(n,w,d,b,a,x); @endcode
  */
 template<Scalar T> __global__ void update(int n, T w, const T* d, const T* b, const T* a, T* x) {
-    const int i = static_cast<int>(blockIdx.x * blockDim.x + threadIdx.x);
-    if (i < n) { x[i] += w * d[i] * (b[i] - a[i]); }
+    const unsigned i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < static_cast<unsigned>(n)) { x[i] += w * d[i] * (b[i] - a[i]); }
 }
 }
 
@@ -99,7 +99,7 @@ struct IterationContext<T, I>::Impl {
 template<Scalar T, CsrIndex I>
 IterationContext<T, I>::IterationContext(const CsrMatrix<T, I>& matrix) {
     detail::librarySize(matrix.rowCount()); detail::librarySize(matrix.columnCount());
-    detail::OperationScope scope(matrix.values().deviceId());
+    detail::OperationScope scope(matrix.rowOffsets().deviceId());
     impl_ = std::make_unique<Impl>(matrix);
 }
 template<Scalar T, CsrIndex I> IterationContext<T, I>::~IterationContext() noexcept = default;
@@ -119,6 +119,12 @@ void IterationContext<T, I>::multiply(const Vector<T>& x, Vector<T>& y) {
         &zero, impl_->y_, std::same_as<T, float> ? CUDA_R_32F : CUDA_R_64F,
         CUSPARSE_SPMV_ALG_DEFAULT, impl_->workspace_.deviceData()));
     check(cudaStreamSynchronize(nullptr));
+}
+template<Scalar T, CsrIndex I>
+void IterationContext<T, I>::clear(Vector<T>& x) {
+    impl_->validate(x);
+    detail::OperationScope scope(impl_->device_);
+    detail::zero(x.deviceData(), x.size());
 }
 template<Scalar T, CsrIndex I>
 void IterationContext<T, I>::residual(const Vector<T>& rhs, const Vector<T>& x, Vector<T>& out) {

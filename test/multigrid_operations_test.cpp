@@ -45,6 +45,12 @@ TYPED_TEST(MultigridOperationTest, diagonalResidualAndGalerkinMatchHandCalculati
     context.residual(rhs, x, residual);
     const auto actual = linalg::detail::hostCopy(residual);
     EXPECT_EQ(actual, (std::vector<T>{-1, 0, 0, -1}));
+    // 单独验证 Jacobi 更新原语，不通过平滑器组件调用。
+    Vector<T> diagonal{std::span<const T>(inverse)};
+    context.clear(x); context.clear(residual);
+    rhs.copyFromHost(ones);
+    context.jacobi(T(1), diagonal, rhs, residual, x);
+    for (T value : linalg::detail::hostCopy(x)) { EXPECT_EQ(value, T(0.5)); }
     EXPECT_THROW(context.residual(rhs, x, rhs), std::invalid_argument);
     EXPECT_THROW(multigrid::galerkin(a, r, p), std::invalid_argument);
     EXPECT_THROW(multigrid::prolongation(a, T(1), T(-1)), std::invalid_argument);
@@ -67,5 +73,22 @@ TYPED_TEST(MultigridOperationTest, coarseLuPivotAndDuplicateDiagonal) {
     const CsrMatrix<T> bad(2, 2, offsets, columns, invalid);
     EXPECT_THROW(linalg::inverseDiagonal(bad), std::invalid_argument);
     EXPECT_THROW((linalg::CoarseLu<T>(bad)), std::invalid_argument);
+}
+TYPED_TEST(MultigridOperationTest, prolongationKeepsOwnerAndRestoresCallerDevice) {
+    using T = TypeParam;
+    int count{}; ASSERT_EQ(cudaGetDeviceCount(&count), cudaSuccess);
+    if (count < 2) { GTEST_SKIP() << "Requires two devices"; }
+    ASSERT_EQ(cudaSetDevice(1), cudaSuccess);
+    const std::vector<int> offsets{0, 2, 4}, columns{0, 1, 0, 1};
+    const std::vector<T> values{2, -1, -1, 2}, ones(2, 1);
+    const CsrMatrix<T> a(2, 2, offsets, columns, values);
+    Vector<T> rhs{std::span<const T>(ones)};
+    ASSERT_EQ(cudaSetDevice(0), cudaSuccess);
+    const auto p = multigrid::prolongation(a, T(2)/T(3), T(0.25));
+    EXPECT_EQ(p.rowOffsets().deviceId(), 1);
+    int current{}; ASSERT_EQ(cudaGetDevice(&current), cudaSuccess); EXPECT_EQ(current, 0);
+    linalg::CoarseLu<T> lu(a);
+    Vector<T> wrong(2);
+    EXPECT_THROW(lu.apply(rhs, wrong), std::invalid_argument);
 }
 } // namespace

@@ -18,6 +18,7 @@ CsrMatrix<T, I> prolongation(const CsrMatrix<T, I>& matrix, T weight, T threshol
         || weight <= 0 || weight >= 2 || !std::isfinite(threshold) || threshold < 0 || threshold > 1) {
         throw std::invalid_argument("Invalid aggregation matrix or parameters");
     }
+    linalg::detail::OperationScope scope(matrix.rowOffsets().deviceId());
     const auto n = matrix.rowCount();
     const auto offsets = linalg::detail::hostCopy(matrix.rowOffsets());
     const auto columns = linalg::detail::hostCopy(matrix.columnIndices());

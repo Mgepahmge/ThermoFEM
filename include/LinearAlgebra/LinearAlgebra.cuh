@@ -4,3 +4,6 @@
 #pragma once
 #include <LinearAlgebra/Operations.cuh>
 #include <LinearAlgebra/Operators.cuh>
+#include <LinearAlgebra/Diagonal.cuh>
+#include <LinearAlgebra/CoarseLu.cuh>
+#include <LinearAlgebra/IterationContext.cuh>

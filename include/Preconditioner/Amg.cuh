@@ -6,7 +6,6 @@
 #include <functional>
 #include <LinearAlgebra/CoarseLu.cuh>
 #include <Multigrid/Aggregation.cuh>
-#include <numeric>
 
 namespace thermofem {
 /** @brief 配置平滑聚合层次与资源上限。
@@ -48,12 +47,12 @@ public:
         }
     }
     /** @brief 构建层次、平滑器与缓存，失败保留旧状态。@param matrix 最细层系数矩阵。
-     * @pre 有限值非空方阵，各层对角有效且粗层可分解。@return 无返回值。
+     * @pre 有限值非空方阵，平滑层对角有效且粗层可分解。@return 无返回值。
      * @code amg.setup(a); @endcode
      */
     void setup(const CsrMatrix<T, I>& matrix) override {
         iteration::validateMatrix(matrix);
-        linalg::detail::OperationScope scope(matrix.values().deviceId());
+        linalg::detail::OperationScope scope(matrix.rowOffsets().deviceId());
         auto next = std::make_unique<State>();
         CsrMatrix<T, I> current = linalg::detail::canonical<I>(matrix);
         for (int depth = 0; ; ++depth) {
@@ -125,7 +124,7 @@ private:
     void cycle(std::size_t depth) {
         auto& level = *state_->levels_[depth];
         if (depth+1 == state_->levels_.size()) { state_->coarse_->apply(level.rhs_, level.x_); return; }
-        linalg::detail::zero(level.x_.deviceData(), level.x_.size());
+        level.context_.clear(level.x_);
         level.smoother_->apply(level.rhs_, level.x_);
         level.context_.residual(level.rhs_, level.x_, level.residual_);
         auto& coarse = *state_->levels_[depth+1];
