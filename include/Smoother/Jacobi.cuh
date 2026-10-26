@@ -3,6 +3,7 @@
  */
 #pragma once
 #include <Solver/Interfaces.cuh>
+#include <LinearAlgebra/Diagonal.cuh>
 #include <cmath>
 
 namespace thermofem {
@@ -29,20 +30,7 @@ public:
         iteration::validateMatrix(matrix);
         linalg::detail::OperationScope scope(matrix.values().deviceId());
         auto next = std::make_unique<State>(matrix);
-        const auto& a = next->context_.matrix();
-        const auto offsets = linalg::detail::hostCopy(a.rowOffsets());
-        const auto columns = linalg::detail::hostCopy(a.columnIndices());
-        const auto values = linalg::detail::hostCopy(a.values());
-        std::vector<T> inverse(a.rowCount(), 0);
-        for (std::size_t row = 0; row < a.rowCount(); ++row) {
-            T diagonal{};
-            for (auto j = offsets[row]; j < offsets[row+1]; ++j) {
-                if (columns[j] == static_cast<I>(row)) { diagonal += values[j]; }
-            }
-            if (diagonal == 0 || !std::isfinite(T(1)/diagonal)) { throw std::invalid_argument("Missing or invalid Jacobi diagonal"); }
-            inverse[row] = T(1)/diagonal;
-        }
-        next->inverse_.copyFromHost(inverse);
+        next->inverse_ = linalg::inverseDiagonal(next->context_.matrix());
         state_ = std::move(next);
     }
     /** @brief 从传入初值执行指定扫描次数。@param rhs 右端项。@param x 输入输出解。

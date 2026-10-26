@@ -34,6 +34,11 @@ public:
      * @code context.multiply(x, y); @endcode
      */
     void multiply(const Vector<T>& x, Vector<T>& y);
+    /** @brief 计算真实残差 out=rhs-A*x。@param rhs 右端项。@param x 当前解。@param out 输出。
+     * @pre 维度匹配，同设备 global 向量，输出不与任一输入别名。@return 无返回值。
+     * @code context.residual(rhs, x, out); @endcode
+     */
+    void residual(const Vector<T>& rhs, const Vector<T>& x, Vector<T>& out);
     /** @brief 执行 y+=alpha*x。@param alpha 系数。@param x 输入。@param y 输出。
      * @pre 等长 global 向量，同设备。@return 无返回值。@code context.axpy(1, x, y); @endcode
      */

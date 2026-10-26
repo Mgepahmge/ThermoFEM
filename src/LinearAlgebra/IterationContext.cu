@@ -121,6 +121,14 @@ void IterationContext<T, I>::multiply(const Vector<T>& x, Vector<T>& y) {
     check(cudaStreamSynchronize(nullptr));
 }
 template<Scalar T, CsrIndex I>
+void IterationContext<T, I>::residual(const Vector<T>& rhs, const Vector<T>& x, Vector<T>& out) {
+    impl_->validate(rhs);
+    if (rhs.size() != out.size() || (rhs.size() && rhs.data() == out.data())) {
+        throw std::invalid_argument("Residual shape or alias mismatch");
+    }
+    multiply(x, out); scale(T(-1), out); axpy(T(1), rhs, out);
+}
+template<Scalar T, CsrIndex I>
 void IterationContext<T, I>::axpy(T alpha, const Vector<T>& x, Vector<T>& y) {
     impl_->validate(x); impl_->validate(y);
     if (x.size() != y.size()) { throw std::invalid_argument("AXPY shape mismatch"); }
