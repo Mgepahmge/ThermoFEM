@@ -304,12 +304,15 @@ template<Scalar T> SparseHostData<T> sparseGemm(const CsrMatrix<T, int>& a, cons
     const T alpha{1}, beta{};
     constexpr auto op = CUSPARSE_OPERATION_NON_TRANSPOSE;
     constexpr auto algorithm = CUSPARSE_SPGEMM_DEFAULT;
+    const auto estimationContext = std::string("cusparseSpGEMM_workEstimation [m=") + std::to_string(a.rowCount())
+        + ", k=" + std::to_string(a.columnCount()) + ", n=" + std::to_string(b.columnCount())
+        + ", nnzA=" + std::to_string(a.nonZeroCount()) + ", nnzB=" + std::to_string(b.nonZeroCount()) + "]";
     std::size_t bytes1{}, bytes2{};
     check(cusparseSpGEMM_workEstimation(handle.get(), op, op, &alpha, left.get(), right.get(), &beta,
-        output.get(), dataType<T>(), algorithm, product.get(), &bytes1, nullptr), "cusparseSpGEMM_workEstimation");
+        output.get(), dataType<T>(), algorithm, product.get(), &bytes1, nullptr), estimationContext.c_str());
     CudaBuffer<std::byte> workspace1(bytes1);
     check(cusparseSpGEMM_workEstimation(handle.get(), op, op, &alpha, left.get(), right.get(), &beta,
-        output.get(), dataType<T>(), algorithm, product.get(), &bytes1, workspace1.data()), "cusparseSpGEMM_workEstimation");
+        output.get(), dataType<T>(), algorithm, product.get(), &bytes1, workspace1.data()), estimationContext.c_str());
     check(cusparseSpGEMM_compute(handle.get(), op, op, &alpha, left.get(), right.get(), &beta,
         output.get(), dataType<T>(), algorithm, product.get(), &bytes2, nullptr), "cusparseSpGEMM_compute");
     CudaBuffer<std::byte> workspace2(bytes2);
