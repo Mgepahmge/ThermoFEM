@@ -4,7 +4,7 @@
 #include <LinearAlgebra/Diagonal.cuh>
 #include <LinearAlgebra/CoarseLu.cuh>
 #include <LinearAlgebra/IterationContext.cuh>
-#include <Multigrid/Aggregation.cuh>
+#include <Multigrid/GpuAggregation.cuh>
 #include <gtest/gtest.h>
 
 /** @brief 独立数学运算测试，不依赖任何求解组件。 */
@@ -29,16 +29,14 @@ TYPED_TEST(MultigridOperationTest, diagonalResidualAndGalerkinMatchHandCalculati
     const CsrMatrix<T> a(4, 4, offsets, columns, values);
     const auto inverse = linalg::detail::hostCopy(linalg::inverseDiagonal(a));
     for (auto value : inverse) { EXPECT_EQ(value, T(0.5)); }
-    const auto p = multigrid::prolongation(a, T(2)/3, T(0.25));
-    ASSERT_EQ(p.columnCount(), 2u);
-    const auto r = linalg::transpose(p);
-    const auto coarse = multigrid::galerkin(a, p, r);
-    const auto coarseValues = linalg::detail::hostCopy(coarse.values());
-    ASSERT_EQ(coarseValues.size(), 4u);
-    EXPECT_NEAR(coarseValues[0], 2.0/3, 1e-6);
-    EXPECT_NEAR(coarseValues[1], -1.0/9, 1e-6);
-    EXPECT_NEAR(coarseValues[2], -1.0/9, 1e-6);
-    EXPECT_NEAR(coarseValues[3], 2.0/3, 1e-6);
+    multigrid::GpuAggregation setup;
+    const auto native=multigrid::toNativeMatrix(a);
+    const auto graph=setup.strength(native,.25);
+    const auto transfer=setup.aggregate(graph,8,true);
+    const auto coarse=setup.galerkin(native,transfer);
+    // 两阶段匹配把四点聚合为一组，P^T*A*P=2，不使用平滑延拓。
+    ASSERT_EQ(coarse.rowCount(),1u);
+    EXPECT_EQ(linalg::detail::hostCopy(coarse.values()),(std::vector<double>{2}));
     const std::vector<T> ones(4, 1), zeros(4, 0);
     Vector<T> x{std::span<const T>(ones)}, rhs{std::span<const T>(zeros)}, residual(4);
     linalg::IterationContext<T> context(a);
@@ -52,8 +50,7 @@ TYPED_TEST(MultigridOperationTest, diagonalResidualAndGalerkinMatchHandCalculati
     context.jacobi(T(1), diagonal, rhs, residual, x);
     for (T value : linalg::detail::hostCopy(x)) { EXPECT_EQ(value, T(0.5)); }
     EXPECT_THROW(context.residual(rhs, x, rhs), std::invalid_argument);
-    EXPECT_THROW(multigrid::galerkin(a, r, p), std::invalid_argument);
-    EXPECT_THROW(multigrid::prolongation(a, T(1), T(-1)), std::invalid_argument);
+    EXPECT_THROW(setup.strength(native,-1),std::invalid_argument);
 }
 TYPED_TEST(MultigridOperationTest, coarseLuPivotAndDuplicateDiagonal) {
     using T = TypeParam;
@@ -83,8 +80,10 @@ TYPED_TEST(MultigridOperationTest, prolongationKeepsOwnerAndRestoresCallerDevice
     const std::vector<T> values{2, -1, -1, 2}, ones(2, 1);
     const CsrMatrix<T> a(2, 2, offsets, columns, values);
     Vector<T> rhs{std::span<const T>(ones)};
+    const auto native=multigrid::toNativeMatrix(a);
+    multigrid::GpuAggregation setup;
     ASSERT_EQ(cudaSetDevice(0), cudaSuccess);
-    const auto p = multigrid::prolongation(a, T(2)/T(3), T(0.25));
+    const auto p = setup.strength(native,.25);
     EXPECT_EQ(p.rowOffsets().deviceId(), 1);
     int current{}; ASSERT_EQ(cudaGetDevice(&current), cudaSuccess); EXPECT_EQ(current, 0);
     linalg::CoarseLu<T> lu(a);

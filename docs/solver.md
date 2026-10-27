@@ -39,17 +39,59 @@ GPU Jacobi 内核与库调用使用默认流并同步返回。
 
 ## AMG 预条件子
 
-`<Preconditioner/Amg.cuh>` 的 `Amg<T,I>` 实现平滑聚合 AMG：按行强连接贪心配对，
-以分片常数延拓 P0 构造 `P=(I-weight*D^-1*A)*P0`，`R=P^T`，`Ac=R*A*P`。
-每次 apply 从零执行一个 V-cycle，前、后平滑通过 `Smoother` 虚接口调用。
-构造时可传入平滑器工厂，每层获得独立的平滑器实例。
+`<Preconditioner/Amg.cuh>` 的 `Amg<T,I>` 按非公开 YHAMG-GPU 的原生聚合路径构造层次，
+不再使用此前偏离参考的贪心配对、平滑延拓或稀疏矩阵乘法。完整阶段为：
 
-聚合和延拓构造目前在 CPU 上执行，Galerkin 稀疏乘积使用 cuSPARSE。
-最粗层使用自行实现的部分主元 LU，在 setup 缓存因子；apply 下载粗层右端项、
-执行三角求解并上传修正。默认粗层目标维度为 16，稠密粗层硬上限为 256。
-粗化未达到硬上限、粗层奇异或出现非有限因子时 setup 抛异常并保留旧状态。
-该实现主要针对椭圆型矩阵；非对称、不定或强各向异性问题不保证收敛。
-它是可验证的初版，尚未移植参考实现的 GPU 配对、融合内核和 CUDA Graph 优化。
+1. GPU 检查 CSR 是否规范；必要时按坐标排序、重复项求和，保留显式零。
+2. 每层校验所有值有限、对角非零且倒数有限。以行最大非对角绝对值归一化强度，
+   达到阈值的边双向插入，重复方向取最大权重，删除自环。
+3. 在强图执行最多 8 轮同步提议及互选接受。等权边按参考的对称 64 位哈希破同值，
+   再按邻点编号排序。按根编号前缀和产生连续聚合编号，不能替换成顺序贪心。
+4. 收缩强图，跨聚合边取最大权重，再做一阶段同步匹配，合成细到粗映射。
+5. 按需进行两轮单点吸收，每轮使用快照。单点只向二、三成员聚合提议，目标按
+   强度降序、细点编号升序接收，容量最多四。最后压缩空编号、排序成员并统计。
+6. 每个细点的延拓只有一个值为一的条目，`P[i,map[i]]=1`，`R=P^T`。
+   将细矩阵条目映射为 `(map[row],map[column],value)`，GPU 排序求和得到粗矩阵。
+   每个细条目只映射一次，因此每层 `nnz(Ac)<=nnz(A)`；不构造 SpGEMM 中间矩阵。
+7. 达到目标粗阶数、最大层数、空强图或无法收缩时停止。<=64 阶时在 GPU 上执行
+   部分主元 LU，主元阈值为 `64*epsilon(double)*max(abs(A))`，缓存因子与交换表。
+   奇异/非有限因子或终止层大于 64 阶时，采用固定次数加权 Jacobi，与参考一致。
+
+默认配置：最大 20 层，粗阶数目标 64，两阶段各 8 轮匹配，启用两轮单点吸收，
+前后各一次 Jacobi、权重 0.75，粗层 fallback 为 8 次 Jacobi，强度阈值 0.25。
+`compactSortKeys_` 仅减少排序键位宽，不改变聚合算法。原生 setup 使用 double/int；
+float 与 64 位索引在 GPU 边界转换，迭代计算保持原类型，原生图仍受 int32 容量限制。
+
+`AmgOptions::cycle_` 在以下三种调度中选择；实现位于独立的 `<Multigrid/Cycle.cuh>`，
+通过受约束的运算适配器组合每层操作，不依赖 Amg、矩阵类型或 CUDA：
+
+| 循环 | 递归与初值语义 |
+| --- | --- |
+| V | 前平滑，限制残差，粗层零初值 V，延拓累加，后平滑 |
+| W | 同 V，但对同一粗右端连续执行两次 W；第二次保留第一次粗解 |
+| F | 限制原右端，递归 F 得到粗初值，延拓覆盖本层解，再从此初值执行一次 V |
+
+F 使用参考代码的嵌套迭代定义，不能用两个 V 代替。W 中第二次递归若清零则丢失
+第一次校正。最粗层若用 LU 则覆盖解；若用 Jacobi 则继续已有初值。apply 每次从零
+开始，固定次数维持线性，不自动判断收敛。前后平滑次数可以独立为零。
+
+```cpp
+thermofem::AmgOptions<double> amgOptions;
+amgOptions.cycle_ = thermofem::multigrid::Cycle::F;
+amgOptions.preSweeps_ = 1;
+amgOptions.postSweeps_ = 1;
+auto preconditioner = std::make_unique<thermofem::Amg<double>>(amgOptions);
+thermofem::BiCgStab<double> solver({}, std::move(preconditioner));
+```
+
+工厂分别为每层前后平滑建立独立实例，避免共享可变缓存；注入工厂时扫描数由其
+返回组件定义，配置为零时跳过对应阶段。粗层 fallback 使用独立 Jacobi。
+`levelStatistics()`、`stopReason()`、`coarseSolver()` 与 `lastCycleVisits()` 用于诊断。
+setup 以完整临时状态构建，失败保留旧状态。一般非对称、不定或各向异性矩阵不保证收敛。
+
+参考的数值阶段已保留，但没有把融合的残差/限制、延拓/平滑或 CUDA Graph 绑定进
+循环。独立接口同步返回，现有矩阵上下文规范化与逆对角提取仍有主机往返，不承诺
+参考原版的执行耗时。测试专用主机基准位于 `test/support/`，不参与生产 AMG setup。
 
 ## BiCGStab 求解器
 
@@ -88,8 +130,10 @@ BiCGStab 的 setup 失败会清空就绪状态，因为注入预条件子的内�
 
 - `linalg::inverseDiagonal`：CSR 逆对角线提取与校验。
 - `linalg::IterationContext`：缓存 cuBLAS/cuSPARSE 资源，提供 multiply、residual、clear、axpy、scale、dot、norm、jacobi。
-- `multigrid::prolongation`：强连接聚合和平滑延拓构造。
-- `multigrid::galerkin`：Galerkin 粗化。
-- `linalg::CoarseLu`：独立的带主元粗层分解与缓存求解。
+- `multigrid::GpuAggregation`：GPU 规范化、强图、完整两阶段聚合和直接 Galerkin 归并。
+- `multigrid::restrictAggregates/prolongAggregates`：按成员求和限制和映射延拓累加。
+- `multigrid::factorCoarse/solveCoarse`：GPU 小规模主元 LU 及三角求解。
+- `multigrid::executeCycle`：受约束且不依赖 GPU 的 V/W/F 调度。
+- `linalg::CoarseLu`：仍可独立使用的 CPU 主元 LU，不用于 AMG 的粗层路径。
 
 这些接口具有不依赖平滑器、预条件子或求解器的独立数学测试。

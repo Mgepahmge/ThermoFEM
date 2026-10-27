@@ -19,13 +19,18 @@ include(CTest)
 find_package(CUDAToolkit 12.0 REQUIRED)
 option(THERMOFEM_BUILD_EXAMPLES "Build ThermoFEM examples" ON)
 
-add_library(thermofem STATIC src/version.cu src/DataStructure/Memory.cu src/LinearAlgebra/Backend.cu src/LinearAlgebra/IterationContext.cu src/IO/MatrixMarket.cu)
+add_library(thermofem STATIC src/version.cu src/DataStructure/Memory.cu src/DataStructure/CsrMatrix.cu src/LinearAlgebra/Backend.cu src/LinearAlgebra/IterationContext.cu src/IO/MatrixMarket.cu src/Multigrid/GpuAggregation.cu)
 add_library(ThermoFEM::thermofem ALIAS thermofem)
 target_include_directories(thermofem PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 target_compile_features(thermofem PUBLIC cxx_std_20 cuda_std_20)
 target_link_libraries(thermofem PUBLIC CUDA::cudart CUDA::cublas CUDA::cusparse)
+foreach(cudaInclude IN LISTS CUDAToolkit_INCLUDE_DIRS)
+    if(EXISTS "${cudaInclude}/cccl/cub/cub.cuh")
+        target_include_directories(thermofem PRIVATE "${cudaInclude}/cccl")
+    endif()
+endforeach()
 set_target_properties(thermofem PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_executable(thermofem_cli src/main.cu)

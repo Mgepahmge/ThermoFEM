@@ -9,6 +9,14 @@
 #include <limits>
 
 namespace thermofem {
+namespace detail {
+/** @brief 在设备端验证 CSR 结构，仅回传错误标志。
+ * @param rows 行数。@param columns 列数。@param count 非零数。@param offsets 行偏移。
+ * @param indices 列索引。@param wide 是否使用 64 位索引。@param device 所属设备。@pre 地址有效。
+ * @return 无返回值，非法结构抛异常。@code validateDeviceCsr(n,n,nz,rp,ci,false,device); @endcode */
+void validateDeviceCsr(std::size_t rows, std::size_t columns, std::size_t count,
+                       const void* offsets, const void* indices, bool wide, int device);
+}
 /// 限定 CSR 索引为 32 位或 64 位有符号整数。
 template<class T>
 concept CsrIndex = std::signed_integral<T> && (sizeof(T) == 4 || sizeof(T) == 8);
@@ -33,6 +41,33 @@ public:
      * @code thermofem::CsrMatrix<double> matrix; @endcode
      */
     CsrMatrix() = default;
+    /** @brief 验证并接管 GPU 算法生成的三个 global 缓冲区，避免下载整个结构。
+     * @param rows 行数。@param columns 列数。@param offsets 行偏移所有权。
+     * @param indices 列索引所有权。@param values 数值所有权。
+     * @pre 缓冲区属于同一设备且为 global；结构合法，尺寸不超出 Index。
+     * @return 拥有这些缓冲区的矩阵；校验失败不移动输入。
+     * @details 在所属 GPU 校验偏移和列索引，允许重复、无序与显式零。
+     * 不检查数值有限性，这与主机构造接口一致。调用完成后恢复调用方设备。
+     * @code auto a = CsrMatrix<double>::fromBuffers(n,n,std::move(rp),std::move(ci),std::move(v)); @endcode */
+    static CsrMatrix fromBuffers(std::size_t rows, std::size_t columns, CudaBuffer<Index>&& offsets,
+                                 CudaBuffer<Index>&& indices, CudaBuffer<T>&& values) {
+        if (!std::in_range<Index>(rows) || !std::in_range<Index>(columns) || !std::in_range<Index>(values.size())
+            || rows == std::numeric_limits<std::size_t>::max()) {
+            throw std::length_error("CSR dimensions exceed index range");
+        }
+        if (offsets.size() != rows+1 || indices.size() != values.size()
+            || offsets.memoryType() != MemoryType::Global || indices.memoryType() != MemoryType::Global
+            || values.memoryType() != MemoryType::Global
+            || (!indices.empty() && offsets.deviceId() != indices.deviceId())
+            || (!values.empty() && offsets.deviceId() != values.deviceId())) {
+            throw std::invalid_argument("Invalid CSR device buffers");
+        }
+        detail::validateDeviceCsr(rows, columns, values.size(), offsets.deviceData(), indices.deviceData(), sizeof(Index)==8, offsets.deviceId());
+        CsrMatrix result;
+        result.rowCount_ = rows; result.columnCount_ = columns;
+        result.rowOffsets_ = std::move(offsets); result.columnIndices_ = std::move(indices); result.values_ = std::move(values);
+        return result;
+    }
     /** @brief 校验主机 CSR 数据并按策略复制到内部存储。
      * @param rows 行数。@param columns 列数。@param rowOffsets 行偏移数组。
      * @param columnIndices 列索引数组。@param values 非零元素数组。@param strategy 内存策略。
