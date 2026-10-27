@@ -58,7 +58,12 @@ auto* devicePointer = target.deviceData();
 
 ## 向量与稠密矩阵
 
-`Vector<T>` 复用 `CudaBuffer<T>` 的接口和所有权语义，目前表示连续的一维数据，不包含数值运算。
+`Vector<T>` 通过组合独占一个 `CudaBuffer<T>`，二者没有继承关系，也没有隐式转换。
+向量长度直接取自存储，不维护重复的尺寸状态。复制与移动采用来源策略，
+仅数据复制保留目标策略及地址，转换策略具有强异常保证。
+常用存储操作由向量显式转发；跨存储抽象使用 `vector.values()`，该接口只读，
+避免外部替换向量内部的 Buffer。原先依赖 Vector 自动绑定 Buffer 引用的代码须改为显式访问。
+数值运算属于 `LinearAlgebra` 层，不放入存储类。
 
 `DenseMatrix<T>` 使用行主序，元素 `(row, column)` 的偏移为 `row * columnCount() + column`。
 构造时检查维度乘积与字节数是否溢出；`at(row, column)` 检查边界及主机可访问性。

@@ -53,6 +53,11 @@ template<la::Scalar T> void expectValues(const CudaBuffer<T>& buffer, std::initi
     const double tolerance = std::same_as<T, float> ? 1e-5 : 1e-12;
     for (const auto value : expected) { EXPECT_NEAR(actual[index++], value, tolerance); }
 }
+/** @brief 显式检查向量存储。@tparam T 精度。@param vector 结果。@param expected 期望值。
+ * @pre 数据已同步。@return 无返回值。@code expectValues(x, {1, 2}); @endcode */
+template<la::Scalar T> void expectValues(const Vector<T>& vector, std::initializer_list<T> expected) {
+    expectValues(vector.values(), expected);
+}
 /** @brief 验证 CSR 的数学矩阵值而非存储顺序。@tparam T 精度。@tparam I 索引。
  * @param matrix 结果。@param expected 行主序期望值。@pre 尺寸匹配。@return 无返回值。
  * @code expectSparse(matrix, {2, 0, 0, 3}); @endcode

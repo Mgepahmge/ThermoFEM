@@ -17,6 +17,11 @@
 namespace {
 using namespace thermofem;
 
+static_assert(!std::is_base_of_v<CudaBuffer<double>, Vector<double>>);
+static_assert(!std::is_convertible_v<Vector<double>&, CudaBuffer<double>&>);
+static_assert(std::same_as<decltype(std::declval<Vector<double>&>().values()), const CudaBuffer<double>&>);
+static_assert(std::is_nothrow_move_constructible_v<Vector<double>>);
+static_assert(std::is_nothrow_move_assignable_v<Vector<double>>);
 static_assert(!BufferElement<std::string>);
 static_assert(!BufferElement<const double>);
 static_assert(!CsrIndex<bool>);
@@ -265,9 +270,49 @@ INSTANTIATE_TEST_SUITE_P(allMemoryPairs, CudaTransferTest, ::testing::Combine(
     ::testing::Values(MemoryType::Global, MemoryType::Pinned, MemoryType::Mapped, MemoryType::Managed),
     ::testing::Values(MemoryType::Global, MemoryType::Pinned, MemoryType::Mapped, MemoryType::Managed)));
 
-/** @brief 验证向量与稠密矩阵布局、复制和移动，无参数。@pre CUDA 可用。@return 无返回值。
- * @code ./build/test/thermofem_tests --gtest_filter=DenseMatrixTest.storageAndValueSemantics @endcode
+/** @brief 验证组合向量在全部内存策略配对下的所有权与复制语义，无参数。
+ * @pre CUDA 可用。@return 无返回值。
+ * @code ./build/test/thermofem_tests --gtest_filter=VectorTest.* @endcode
  */
+TEST(VectorTest, composedStoragePreservesOwnershipAndPolicy) {
+    std::string reason;
+    if (!cudaAvailable(reason)) { GTEST_SKIP() << reason; }
+    const std::array<double, 3> expected{1, 2, 3}, changed{4, 5, 6};
+    for (auto sourceType : {MemoryType::Global, MemoryType::Pinned, MemoryType::Mapped, MemoryType::Managed}) {
+        if (!supports(sourceType)) { continue; }
+        for (auto targetType : {MemoryType::Global, MemoryType::Pinned, MemoryType::Mapped, MemoryType::Managed}) {
+            if (!supports(targetType)) { continue; }
+            Vector<double> source(expected, strategyFor(sourceType));
+            Vector<double> target(3, strategyFor(targetType));
+            auto* originalAddress = target.data();
+            target.copyDataFrom(source);
+            EXPECT_EQ(target.data(), originalAddress); EXPECT_EQ(target.memoryType(), targetType);
+            std::array<double, 3> actual{}; target.copyToHost(actual); EXPECT_EQ(actual, expected);
+            target = source;
+            EXPECT_EQ(target.memoryType(), sourceType); EXPECT_NE(target.data(), source.data());
+            source.copyFromHost(changed);
+            target.copyToHost(actual); EXPECT_EQ(actual, expected);
+            auto* transferredAddress = target.data();
+            Vector<double> moved(std::move(target));
+            EXPECT_TRUE(target.empty()); EXPECT_EQ(moved.data(), transferredAddress);
+            target = std::move(moved);
+            EXPECT_TRUE(moved.empty()); EXPECT_EQ(target.data(), transferredAddress);
+            target.changeMemoryType(strategyFor(targetType));
+            EXPECT_EQ(target.memoryType(), targetType);
+            target.copyToHost(actual); EXPECT_EQ(actual, expected);
+            target.copyDataFrom(source.values());
+            target.copyToHost(actual); EXPECT_EQ(actual, changed);
+            target.swap(source);
+            EXPECT_EQ(source.memoryType(), targetType);
+            EXPECT_EQ(target.memoryType(), sourceType);
+            Vector<double> wrong(2);
+            EXPECT_THROW(target.copyDataFrom(wrong), std::invalid_argument);
+        }
+    }
+}
+
+/** @brief 验证稠密矩阵布局与所有权，无参数。@pre CUDA 可用。@return 无返回值。
+ * @code ./build/test/thermofem_tests --gtest_filter=DenseMatrixTest.storageAndValueSemantics @endcode */
 TEST(DenseMatrixTest, storageAndValueSemantics) {
     std::string reason;
     if (!cudaAvailable(reason)) { GTEST_SKIP() << reason; }

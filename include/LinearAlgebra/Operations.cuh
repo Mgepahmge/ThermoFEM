@@ -51,6 +51,12 @@ template<BufferElement T> CudaBuffer<T> deviceCopy(const CudaBuffer<T>& buffer) 
     result.copyDataFrom(buffer);
     return result;
 }
+/** @brief 显式下载向量的内部存储。@tparam T 元素类型。@param vector 来源。
+ * @pre 外部访问已同步。@return 主机数组。@code auto host = hostCopy(x); @endcode */
+template<BufferElement T> std::vector<T> hostCopy(const Vector<T>& vector) { return hostCopy(vector.values()); }
+/** @brief 显式复制向量的内部存储至 global。@tparam T 元素类型。@param vector 来源。
+ * @pre 当前设备为所属设备。@return 设备缓冲区。@code auto copy = deviceCopy(x); @endcode */
+template<BufferElement T> CudaBuffer<T> deviceCopy(const Vector<T>& vector) { return deviceCopy(vector.values()); }
 /** @brief 将设备输出清零。@tparam T 精度。@param pointer 设备地址。@param count 元素数。
  * @pre 地址有效且属于当前设备。@return 无返回值。@code zero(pointer, 3); @endcode
  */
