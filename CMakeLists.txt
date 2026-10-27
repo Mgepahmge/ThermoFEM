@@ -45,6 +45,19 @@ if(BUILD_TESTING)
 endif()
 
 find_package(Doxygen QUIET)
+find_program(THERMOFEM_CLANG_FORMAT NAMES clang-format clang-format-23 clang-format-22 clang-format-21 clang-format-20 clang-format-19 clang-format-18 clang-format-17 clang-format-16 clang-format-15)
+if(THERMOFEM_CLANG_FORMAT)
+    add_custom_target(format
+        COMMAND ${CMAKE_COMMAND} -E env "CLANG_FORMAT=${THERMOFEM_CLANG_FORMAT}"
+            bash "${CMAKE_CURRENT_SOURCE_DIR}/scripts/format.sh" --write
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        COMMENT "Formatting ThermoFEM sources" VERBATIM)
+    add_custom_target(format-check
+        COMMAND ${CMAKE_COMMAND} -E env "CLANG_FORMAT=${THERMOFEM_CLANG_FORMAT}"
+            bash "${CMAKE_CURRENT_SOURCE_DIR}/scripts/format.sh" --check
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        COMMENT "Checking ThermoFEM source formatting" VERBATIM)
+endif()
 if(DOXYGEN_FOUND)
     add_custom_target(docs
         COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_SOURCE_DIR}/build/docs"

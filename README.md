@@ -27,11 +27,13 @@ ThermoFEM/
 ├── test/                      # GoogleTest 测试，.cpp，独立 CMakeLists.txt
 ├── example/                   # CUDA 示例，独立 CMakeLists.txt
 ├── scripts/build-docs.sh       # 一键构建文档
+├── scripts/format.sh           # 格式化与格式检查
 ├── docs/Doxyfile               # Doxygen 配置
 ├── cmake/                     # 安装后的 CMake 包配置模板
 ├── CMakeLists.txt
 ├── README.md
 ├── LICENSE
+├── .clang-format
 └── .gitignore
 ```
 
@@ -110,6 +112,20 @@ bash scripts/build-docs.sh
 ```
 
 上述相对路径命令从项目根目录执行；从其他目录使用脚本的绝对路径。输出入口为 `build/docs/html/index.html`。如果配置 CMake 时已找到 Doxygen，也可执行 `cmake --build build --target docs`。
+
+## 代码格式
+
+代码格式由根目录 `.clang-format` 统一定义，CUDA 源文件、项目头文件和 C++ 测试均须格式化。
+需要支持 `InsertBraces` 与 `InsertNewlineAtEOF` 的 clang-format，建议统一使用 23.1.3。
+
+```bash
+bash scripts/format.sh --write
+bash scripts/format.sh --check
+```
+
+脚本只处理 src、include、test 和 example 目录内的 CUDA 源文件、CUDA 头文件及 C++ 测试文件。
+可通过 `CLANG_FORMAT=/path/to/clang-format` 指定程序。配置 CMake 时若找到 clang-format，
+还可使用 `cmake --build build --target format` 或 `format-check`。
 
 ## 贡献
 

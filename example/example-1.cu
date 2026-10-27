@@ -18,7 +18,7 @@
  */
 int main() {
     const auto currentVersion = thermofem::version();
-    std::cout << "Example 1: ThermoFEM library version " << currentVersion.major_ << '.'
-              << currentVersion.minor_ << '.' << currentVersion.patch_ << '\n';
+    std::cout << "Example 1: ThermoFEM library version " << currentVersion.major_ << '.' << currentVersion.minor_ << '.'
+              << currentVersion.patch_ << '\n';
     return 0;
 }

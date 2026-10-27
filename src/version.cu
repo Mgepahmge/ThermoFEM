@@ -7,8 +7,6 @@
 
 namespace thermofem {
 
-Version version() noexcept {
-    return {0, 1, 0};
-}
+    Version version() noexcept { return {0, 1, 0}; }
 
-} // 命名空间 thermofem
+} // namespace thermofem
