@@ -101,7 +101,7 @@ target_link_libraries(your_target PRIVATE ThermoFEM::thermofem)
 
 基础数据结构的接口、内存策略、复制与移动语义及同步要求见 [基础数据结构](docs/data-structures.md)。
 线性代数接口及当前限制见 [线性代数](docs/linear-algebra.md)。
-分层接口、求解参数、异常保证及 V/W/F 语义见 [求解组件](docs/solver.md)。
+分层接口、CG/BiCGStab 求解参数、异常保证及 V/W/F 语义见 [求解组件](docs/solver.md)。
 矩阵输入、命令行求解及输出含义见 [Matrix Market 用户手册](docs/matrix-market.md)。
 完整文档分类见 [文档目录](docs/index.md)。
 
@@ -112,6 +112,9 @@ bash scripts/build-docs.sh
 ```
 
 上述相对路径命令从项目根目录执行；从其他目录使用脚本的绝对路径。输出入口为 `build/docs/html/index.html`。如果配置 CMake 时已找到 Doxygen，也可执行 `cmake --build build --target docs`。
+
+`<Solver/Cg.cuh>` 提供默认使用恒等预条件子的 CG 求解器，用于对称正定矩阵。
+注入预条件子时，其动作也必须固定、线性且对称正定；现有 AMG 与 PCG 的相容性尚未验证。
 
 ## 代码格式
 

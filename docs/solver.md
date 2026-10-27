@@ -120,6 +120,34 @@ BiCGStab 的 setup 失败会清空就绪状态，因为注入预条件子的内�
 重新成功 setup 后可以继续使用。Jacobi、AMG 的 setup 失败仍保留旧状态。
 完整二维 Poisson 示例见 `example/example-4.cu`。
 
+## CG 求解器
+
+`<Solver/Cg.cuh>` 提供 `Cg<T,I>` 和 `CgOptions<T>`。默认组合恒等预条件子，
+对应普通 CG；也可注入 `std::unique_ptr<Preconditioner<T,I>>` 实现 PCG。
+矩阵必须对称正定，预条件动作必须固定、线性且对称正定。
+恒等预条件子满足 CG 的数学要求；现有 AMG 与 PCG 的相容性尚未保证。
+
+```cpp
+#include <Solver/Cg.cuh>
+
+thermofem::CgOptions<double> options;
+options.relativeTolerance_ = 1e-10;
+thermofem::Cg<double> solver(options);
+solver.setup(matrix);
+auto report = solver.apply(rhs, x);
+```
+
+默认最多迭代 1000 次，float 相对容差为 1e-5，double 为 1e-8，绝对容差为零。
+收敛判据、报告、别名处理及输出内存策略与 BiCGStab 一致；setup 失败使求解器失效。
+每次返回均重算真实残差，初值收敛时报告零次迭代，迭代上限为零时仅检查初值。
+零右端项通常需要合理的绝对容差，其 relativeResidual 等于绝对残差。
+
+默认每 50 次迭代以及递推残差达到阈值时重新计算真实残差；未收敛则重启搜索方向。
+过于频繁的刷新会削弱共轭方向的收益，应结合精度和问题条件数选择周期。
+非正的 `r^T*z` 或 `p^T*A*p` 报告 Breakdown，非有限标量报告 NonFinite。
+这些检查不等价于对称性或正定性认证：setup 不进行全矩阵认证，调用方必须保证数学条件。
+所有向量和稀疏运算复用独立的 IterationContext，不使用 cuSOLVER。
+
 ## 独立运算接口
 
 求解组件通过独立运算组合算法：
