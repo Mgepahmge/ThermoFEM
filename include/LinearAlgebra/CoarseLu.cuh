@@ -22,7 +22,7 @@ namespace thermofem::linalg {
     class CoarseLu {
     public:
         /** @brief 下载并分解粗矩阵。@tparam I 索引。@param matrix 粗矩阵。
-         * @pre 方阵，调用者已限制维度。@return 无返回值。@code CoarseLu<double> lu(a); @endcode
+         * @pre 方阵，调用者已限制维度。@note 无返回值。@code CoarseLu<double> lu(a); @endcode
          */
         template <CsrIndex I>
         explicit CoarseLu(const CsrMatrix<T, I>& matrix) :
@@ -75,7 +75,7 @@ namespace thermofem::linalg {
             }
         }
         /** @brief 用缓存因子求解。@param rhs 右端项。@param x 输出。
-         * @pre 长度等于粗层维度且设备一致。@return 无返回值。@code coarse.apply(b, x); @endcode
+         * @pre 长度等于粗层维度且设备一致。@note 无返回值。@code coarse.apply(b, x); @endcode
          */
         void apply(const Vector<T>& rhs, Vector<T>& x) {
             if (rhs.size() != n_ || x.size() != n_) {

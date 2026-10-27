@@ -17,7 +17,7 @@ namespace {
     template <linalg::Scalar T>
     class SolverTest : public ::testing::Test {
     protected:
-        /** @brief 激活设备，无参数、无额外约束。@return 无返回值。
+        /** @brief 激活设备，无参数、无额外约束。@note 无返回值。
          * @code SetUp(); @endcode
          */
         void SetUp() override {

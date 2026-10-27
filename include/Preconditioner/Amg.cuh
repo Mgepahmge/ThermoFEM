@@ -57,7 +57,7 @@ namespace thermofem {
         using SmootherFactory = std::function<std::unique_ptr<Smoother<T, I>>()>; ///< 独立组件工厂。
         /** @brief 保存配置及可选工厂。
          * @param options 配置。@param factory 分别为前后平滑创建组件。
-         * @pre 配置合法；注入平滑器提供固定线性动作。@return 无返回值。
+         * @pre 配置合法；注入平滑器提供固定线性动作。@note 无返回值。
          * @details 默认使用独立 Jacobi，扫描数取 pre/postSweeps；注入工厂时扫描数由
          * 返回组件定义。对应 sweeps 为零仍跳过阶段。粗层 fallback 不使用工厂。
          * @code Amg<double> amg(options); @endcode */
@@ -76,7 +76,7 @@ namespace thermofem {
         }
         /** @brief 构建层次、因子、组件和缓存，失败保留旧状态。
          * @param matrix 输入方阵。@pre 非空有限，各层对角有效，原生图容量可表示。
-         * @return 无返回值。@throws std::invalid_argument 非法数值、对角或空工厂。
+         * @note 无返回值。@throws std::invalid_argument 非法数值、对角或空工厂。
          * @throws std::length_error 原生图容量不足。@code amg.setup(a); @endcode */
         void setup(const CsrMatrix<T, I>& matrix) override {
             iteration::validateMatrix(matrix);
@@ -143,7 +143,7 @@ namespace thermofem {
         }
         /** @brief 从零执行配置的 V/W/F 循环，覆盖输出。
          * @param rhs 右端。@param x 输出，可与 rhs 别名。
-         * @pre setup 成功，尺寸设备匹配，支持全部内存策略。@return 无返回值。
+         * @pre setup 成功，尺寸设备匹配，支持全部内存策略。@note 无返回值。
          * @details 先保存 rhs；调度逐层调用独立平滑、残差、限制、延拓及粗层求解接口。
          * 不判断收敛容差，调用方求解器负责真实残差验证。@code amg.apply(b,z); @endcode */
         void apply(const Vector<T>& rhs, Vector<T>& x) override {
@@ -178,7 +178,7 @@ namespace thermofem {
             Vector<T> rhs_, x_, residual_; ///< 右端、近似解、残差缓存。
             std::unique_ptr<Smoother<T, I>> pre_, post_; ///< 独立前后平滑器。
             std::unique_ptr<multigrid::AggregateTransfer> transfer_; ///< 到下一层的传输。
-            /** @brief 分配层缓存。@param a 矩阵。@pre 当前设备正确。@return 无返回值。@code Level l(a); @endcode
+            /** @brief 分配层缓存。@param a 矩阵。@pre 当前设备正确。@note 无返回值。@code Level l(a); @endcode
              */
             explicit Level(const CsrMatrix<T, I>& a) :
                 context_(a), rhs_(a.rowCount()), x_(a.rowCount()), residual_(a.rowCount()) {}
@@ -199,17 +199,17 @@ namespace thermofem {
             /** @brief 判定粗层。@param d 层号。@pre 层号有效。@return 是否最粗层。@code adapter.isCoarsest(0);
              * @endcode */
             bool isCoarsest(std::size_t d) const { return d + 1 == state_.levels_.size(); }
-            /** @brief 记录访问。@param d 层号。@pre 层号有效。@return 无返回值。@code adapter.begin(0); @endcode
+            /** @brief 记录访问。@param d 层号。@pre 层号有效。@note 无返回值。@code adapter.begin(0); @endcode
              */
             void begin(std::size_t d) { ++state_.visits_[d]; }
-            /** @brief 清零初值。@param d 层号。@pre 层号有效。@return 无返回值。@code adapter.clear(0); @endcode
+            /** @brief 清零初值。@param d 层号。@pre 层号有效。@note 无返回值。@code adapter.clear(0); @endcode
              */
             void clear(std::size_t d) {
                 auto& l = *state_.levels_[d];
                 l.context_.clear(l.x_);
             }
             /** @brief 调用独立粗层 LU 或保留初值的固定 Jacobi。
-             * @param d 最粗层。@pre 状态完整。@return 无返回值。@code adapter.coarseSolve(d); @endcode */
+             * @param d 最粗层。@pre 状态完整。@note 无返回值。@code adapter.coarseSolve(d); @endcode */
             void coarseSolve(std::size_t d) {
                 auto& l = *state_.levels_[d];
                 if (state_.factor_.factored_) {
@@ -219,7 +219,7 @@ namespace thermofem {
                     state_.fallback_->apply(l.rhs_, l.x_);
                 }
             }
-            /** @brief 前平滑。@param d 非粗层。@pre 状态完整。@return 无返回值。@code adapter.preSmooth(0);
+            /** @brief 前平滑。@param d 非粗层。@pre 状态完整。@note 无返回值。@code adapter.preSmooth(0);
              * @endcode */
             void preSmooth(std::size_t d) {
                 auto& l = *state_.levels_[d];
@@ -227,7 +227,7 @@ namespace thermofem {
                     l.pre_->apply(l.rhs_, l.x_);
                 }
             }
-            /** @brief 后平滑。@param d 非粗层。@pre 状态完整。@return 无返回值。@code adapter.postSmooth(0);
+            /** @brief 后平滑。@param d 非粗层。@pre 状态完整。@note 无返回值。@code adapter.postSmooth(0);
              * @endcode */
             void postSmooth(std::size_t d) {
                 auto& l = *state_.levels_[d];
@@ -236,20 +236,20 @@ namespace thermofem {
                 }
             }
             /** @brief F 嵌套初值所需的原右端限制。
-             * @param d 非粗层。@pre 状态完整。@return 无返回值。@code adapter.restrictRhs(0); @endcode */
+             * @param d 非粗层。@pre 状态完整。@note 无返回值。@code adapter.restrictRhs(0); @endcode */
             void restrictRhs(std::size_t d) {
                 auto& l = *state_.levels_[d];
                 multigrid::restrictAggregates(*l.transfer_, l.rhs_, state_.levels_[d + 1]->rhs_);
             }
             /** @brief 分别调用残差和限制，构造粗层误差右端。
-             * @param d 非粗层。@pre 状态完整。@return 无返回值。@code adapter.restrictResidual(0); @endcode */
+             * @param d 非粗层。@pre 状态完整。@note 无返回值。@code adapter.restrictResidual(0); @endcode */
             void restrictResidual(std::size_t d) {
                 auto& l = *state_.levels_[d];
                 l.context_.residual(l.rhs_, l.x_, l.residual_);
                 multigrid::restrictAggregates(*l.transfer_, l.residual_, state_.levels_[d + 1]->rhs_);
             }
             /** @brief 延拓累加粗解，F 覆盖初值前由调度器先清零。
-             * @param d 非粗层。@pre 状态完整。@return 无返回值。@code adapter.prolong(0); @endcode */
+             * @param d 非粗层。@pre 状态完整。@note 无返回值。@code adapter.prolong(0); @endcode */
             void prolong(std::size_t d) {
                 auto& l = *state_.levels_[d];
                 multigrid::prolongAggregates(*l.transfer_, state_.levels_[d + 1]->x_, l.x_);

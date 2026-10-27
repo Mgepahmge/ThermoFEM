@@ -10,7 +10,7 @@ namespace thermofem::linalg {
     /** @brief 提供执行上下文的内部错误检查与 CUDA 内核。 */
     namespace {
         /** @brief 检查库状态。@tparam S 状态枚举。@param status 返回状态。
-         * @pre 零表示成功。@return 无返回值。@code check(cublasCreate(&handle)); @endcode
+         * @pre 零表示成功。@note 无返回值。@code check(cublasCreate(&handle)); @endcode
          */
         template <class S>
             requires std::is_enum_v<S>
@@ -21,7 +21,7 @@ namespace thermofem::linalg {
         }
         /** @brief 逐元素更新 Jacobi 近似解。@tparam T 精度。@param n 长度。@param w 权重。
          * @param d 逆对角线。@param b 右端项。@param a 矩阵向量积。@param x 近似解。
-         * @pre 设备地址有效且等长。@return 无返回值。@code update<<<1,256>>>(n,w,d,b,a,x); @endcode
+         * @pre 设备地址有效且等长。@note 无返回值。@code update<<<1,256>>>(n,w,d,b,a,x); @endcode
          */
         template <Scalar T>
         __global__ void update(int n, T w, const T* d, const T* b, const T* a, T* x) {
@@ -46,7 +46,7 @@ namespace thermofem::linalg {
         cusparseDnVecDescr_t x_{}, y_{}; ///< 可重绑定的向量描述符。
         int device_{}; ///< 资源所属设备。
         /** @brief 建立所有资源。@param matrix 输入。
-         * @pre 当前设备正确。@return 无返回值。@code Impl state(matrix); @endcode
+         * @pre 当前设备正确。@note 无返回值。@code Impl state(matrix); @endcode
          */
         explicit Impl(const CsrMatrix<T, I>& matrix) :
             matrix_(detail::canonical<I>(matrix)), input_(matrix.columnCount()), output_(matrix.rowCount()) {
@@ -82,7 +82,7 @@ namespace thermofem::linalg {
                 throw;
             }
         }
-        /** @brief 释放句柄，无参数、无额外约束。@return 无返回值。
+        /** @brief 释放句柄，无参数、无额外约束。@note 无返回值。
          * @code state.release(); @endcode
          */
         void release() noexcept {
@@ -102,7 +102,7 @@ namespace thermofem::linalg {
                 cublasDestroy(blas_);
             }
         }
-        /** @brief 在所属设备释放资源，无参数、无额外约束。@return 无返回值。
+        /** @brief 在所属设备释放资源，无参数、无额外约束。@note 无返回值。
          * @code { Impl state(matrix); } @endcode
          */
         ~Impl() noexcept {
@@ -113,7 +113,7 @@ namespace thermofem::linalg {
             cudaSetDevice(previous);
         }
         /** @brief 检查工作向量。@param v 向量。@pre 无额外约束。
-         * @return 无返回值。@code state.validate(v); @endcode
+         * @note 无返回值。@code state.validate(v); @endcode
          */
         void validate(const Vector<T>& v) const {
             detail::librarySize(v.size());

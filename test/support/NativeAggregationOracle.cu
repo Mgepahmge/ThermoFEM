@@ -18,7 +18,7 @@ namespace thermofem::testoracle {
             double value_; ///< 权重或数值。
         };
         /** @brief 校验主机 CSR 边界和有限数值。@param a 输入。@pre 无额外约束。
-         * @return 无返回值。@code validate(a); @endcode */
+         * @note 无返回值。@code validate(a); @endcode */
         void validate(const io::HostCsr& a) {
             if (a.rows_ < 1 || a.rows_ != a.columns_ || a.offsets_.size() != static_cast<std::size_t>(a.rows_) + 1 ||
                 a.indices_.size() != a.values_.size() ||

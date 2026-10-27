@@ -45,7 +45,7 @@ namespace thermofem {
     public:
         /** @brief 保存配置并接管预条件子。@param options 求解配置。@param preconditioner 可选预条件子。
          * @pre 迭代数非负，刷新周期正，容差有限，0<=rtol<1，atol>=0。
-         * @return 无返回值。@code BiCgStab<double> solver(options, std::make_unique<Identity<double>>()); @endcode
+         * @note 无返回值。@code BiCgStab<double> solver(options, std::make_unique<Identity<double>>()); @endcode
          */
         explicit BiCgStab(BiCgStabOptions<T> options = {}, std::unique_ptr<Preconditioner<T, I>> preconditioner = {}) :
             options_(options), preconditioner_(std::move(preconditioner)) {
@@ -60,7 +60,7 @@ namespace thermofem {
             }
         }
         /** @brief 建立矩阵快照、工作向量和预条件子。@param matrix 系数矩阵。
-         * @pre 非空有限值方阵，并满足所选预条件子的条件。@return 无返回值。
+         * @pre 非空有限值方阵，并满足所选预条件子的条件。@note 无返回值。
          * @code solver.setup(a); @endcode
          * @details 顺序为：撤销就绪状态、检查方阵、建立执行上下文和缓存、初始化预条件子、
          * 发布新状态。通过后两次 apply 可复用同一矩阵状态而求解不同右端项。
@@ -108,7 +108,7 @@ namespace thermofem {
             Vector<T> r_, shadow_, p_, v_, s_, t_; ///< BiCGStab 递推向量。
             Vector<T> preconditionedP_, preconditionedS_; ///< 预条件后的搜索方向。
             /** @brief 分配全部缓存。@param matrix 系数矩阵。@pre 当前设备正确。
-             * @return 无返回值。@code State state(matrix); @endcode
+             * @note 无返回值。@code State state(matrix); @endcode
              */
             explicit State(const CsrMatrix<T, I>& matrix) :
                 context_(matrix), rhs_(matrix.rowCount()), x_(matrix.rowCount()), r_(matrix.rowCount()),

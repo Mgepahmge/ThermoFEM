@@ -20,21 +20,21 @@ namespace thermofem {
     class DenseMatrix {
     public:
         using ValueType = T; ///< 矩阵元素类型。
-        /** @brief 创建空矩阵，无参数、无额外约束。@return 无返回值。
+        /** @brief 创建空矩阵，无参数、无额外约束。@note 无返回值。
          * @code thermofem::DenseMatrix<double> matrix; @endcode
          */
         DenseMatrix() = default;
         /** @brief 分配未初始化矩阵。@param rows 行数。@param columns 列数。@param strategy 内存策略。
-         * @pre 元素数和字节数不溢出，非空分配需要 CUDA。@return 无返回值。
+         * @pre 元素数和字节数不溢出，非空分配需要 CUDA。@note 无返回值。
          * @code thermofem::DenseMatrix<double> matrix(2, 3); @endcode
          */
         DenseMatrix(std::size_t rows, std::size_t columns, MemoryStrategy strategy = GlobalMemory{}) :
             rowCount_(rows), columnCount_(columns), values_(detail::checkedProduct(rows, columns), strategy) {}
-        /** @brief 深拷贝矩阵及策略。@param other 来源。@pre 异步访问已结束。@return 无返回值。
+        /** @brief 深拷贝矩阵及策略。@param other 来源。@pre 异步访问已结束。@note 无返回值。
          * @code auto copy = matrix; @endcode
          */
         DenseMatrix(const DenseMatrix& other) = default;
-        /** @brief 接管矩阵并清空来源。@param other 来源。@pre 无额外约束。@return 无返回值。
+        /** @brief 接管矩阵并清空来源。@param other 来源。@pre 无额外约束。@note 无返回值。
          * @code auto moved = std::move(matrix); @endcode
          */
         DenseMatrix(DenseMatrix&& other) noexcept { swap(other); }
@@ -59,7 +59,7 @@ namespace thermofem {
             return *this;
         }
         /** @brief 交换矩阵形状、策略与所有权。@param other 交换对象。@pre 无额外约束。
-         * @return 无返回值。@code target.swap(source); @endcode
+         * @note 无返回值。@code target.swap(source); @endcode
          */
         void swap(DenseMatrix& other) noexcept {
             std::swap(rowCount_, other.rowCount_);
@@ -67,7 +67,7 @@ namespace thermofem {
             values_.swap(other.values_);
         }
         /** @brief 保留形状、类型和地址，复制全部元素。@param other 来源。
-         * @pre 行列数一致、设备一致且异步访问已结束。@return 无返回值。
+         * @pre 行列数一致、设备一致且异步访问已结束。@note 无返回值。
          * @code target.copyDataFrom(source); @endcode
          */
         void copyDataFrom(const DenseMatrix& other) {
@@ -77,20 +77,20 @@ namespace thermofem {
             values_.copyDataFrom(other.values_);
         }
         /** @brief 保留形状与数据，转换内存类型。@param strategy 新策略。@pre 异步访问已结束。
-         * @return 无返回值。@code matrix.changeMemoryType(thermofem::MappedMemory{}); @endcode
+         * @note 无返回值。@code matrix.changeMemoryType(thermofem::MappedMemory{}); @endcode
          */
         void changeMemoryType(MemoryStrategy strategy) { values_.changeMemoryType(strategy); }
         /** @brief 从主机按行主序导入全部元素。@param values 主机数组。@pre 元素数匹配且异步访问已结束。
-         * @return 无返回值。@code matrix.copyFromHost(values); @endcode
+         * @note 无返回值。@code matrix.copyFromHost(values); @endcode
          */
         void copyFromHost(std::span<const T> values) { values_.copyFromHost(values); }
         /** @brief 从缓冲区导入全部元素，保留矩阵形状、策略与地址。@param values 来源。
-         * @pre 元素数相同且设备一致，异步访问已结束。@return 无返回值。
+         * @pre 元素数相同且设备一致，异步访问已结束。@note 无返回值。
          * @code matrix.copyValuesFrom(buffer); @endcode
          */
         void copyValuesFrom(const CudaBuffer<T>& values) { values_.copyDataFrom(values); }
         /** @brief 按行主序导出至主机。@param values 主机数组。@pre 元素数匹配且异步访问已结束。
-         * @return 无返回值。@code matrix.copyToHost(values); @endcode
+         * @note 无返回值。@code matrix.copyToHost(values); @endcode
          */
         void copyToHost(std::span<T> values) const { values_.copyToHost(values); }
         /** @brief 查询行数，无参数、无额外约束。@return 行数。

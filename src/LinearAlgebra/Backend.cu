@@ -11,7 +11,7 @@ namespace thermofem::linalg::detail {
     /** @brief 包含库错误检查、描述符及精度分派等内部实现。 */
     namespace {
         /** @brief 检查 CUDA 结果。@param status 状态。@param operation 操作。@pre 名称有效。
-         * @return 无返回值。@code check(cudaDeviceSynchronize(), "synchronize"); @endcode
+         * @note 无返回值。@code check(cudaDeviceSynchronize(), "synchronize"); @endcode
          */
         void check(cudaError_t status, const char* operation) {
             if (status != cudaSuccess) {
@@ -19,7 +19,7 @@ namespace thermofem::linalg::detail {
             }
         }
         /** @brief 检查 cuBLAS 结果。@param status 状态。@param operation 操作。@pre 名称有效。
-         * @return 无返回值。@code check(cublasCreate(&handle), "cublasCreate"); @endcode
+         * @note 无返回值。@code check(cublasCreate(&handle), "cublasCreate"); @endcode
          */
         void check(cublasStatus_t status, const char* operation) {
             if (status != CUBLAS_STATUS_SUCCESS) {
@@ -27,7 +27,7 @@ namespace thermofem::linalg::detail {
             }
         }
         /** @brief 检查 cuSPARSE 结果。@param status 状态。@param operation 操作。@pre 名称有效。
-         * @return 无返回值。@code check(cusparseCreate(&handle), "cusparseCreate"); @endcode
+         * @note 无返回值。@code check(cusparseCreate(&handle), "cusparseCreate"); @endcode
          */
         void check(cusparseStatus_t status, const char* operation) {
             if (status != CUSPARSE_STATUS_SUCCESS) {
@@ -42,11 +42,11 @@ namespace thermofem::linalg::detail {
             requires std::is_pointer_v<T> && std::invocable<decltype(Destroy), T>
         class Owner {
         public:
-            /** @brief 创建空所有者，无参数、无额外约束。@return 无返回值。
+            /** @brief 创建空所有者，无参数、无额外约束。@note 无返回值。
              * @code Owner<cublasHandle_t, cublasDestroy> owner; @endcode
              */
             Owner() = default;
-            /** @brief 尽力销毁资源，无参数。@pre 外部调用已经同步。@return 无返回值。
+            /** @brief 尽力销毁资源，无参数。@pre 外部调用已经同步。@note 无返回值。
              * @code { Owner<cublasHandle_t, cublasDestroy> owner; } @endcode
              */
             ~Owner() noexcept {
@@ -99,7 +99,7 @@ namespace thermofem::linalg::detail {
         }
         /** @brief 初始化规范化 CSR 描述符。@tparam T 精度。@tparam I 索引类型。
          * @param descriptor 目标。@param matrix 设备矩阵。@pre 描述符为空，矩阵为 global。
-         * @return 无返回值。@code createSparse(descriptor, matrix); @endcode
+         * @note 无返回值。@code createSparse(descriptor, matrix); @endcode
          */
         template <Scalar T, CsrIndex I>
         void createSparse(SparseDescriptor& descriptor, const CsrMatrix<T, I>& matrix) {

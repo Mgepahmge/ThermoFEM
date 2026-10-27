@@ -25,7 +25,7 @@ namespace thermofem::multigrid {
         /** @brief 计算线程块数。@param n 线程数。@pre n>0。@return 块数。@code grid(n); @endcode */
         int grid(int n) { return (n + size_t(block) - 1) / block; }
         /** @brief 检查 CUDA 错误。@param status 返回码。@param operation 操作名。
-         * @pre 无额外约束。@return 无返回值。@code checkCuda(cudaGetLastError(),"kernel"); @endcode */
+         * @pre 无额外约束。@note 无返回值。@code checkCuda(cudaGetLastError(),"kernel"); @endcode */
         void checkCuda(cudaError_t status, const char* operation) {
             if (status != cudaSuccess) {
                 throw CudaError(status, operation);
@@ -57,10 +57,10 @@ namespace thermofem::multigrid {
         template <BufferElement T>
         struct WorkspaceBuffer {
             CudaBuffer<T> buffer_; ///< 工作存储及其生命周期。
-            /** @brief 分配容量。@param n 容量。@pre 当前设备有效。@return 无返回值。@code WorkspaceBuffer<int> b(4);
+            /** @brief 分配容量。@param n 容量。@pre 当前设备有效。@note 无返回值。@code WorkspaceBuffer<int> b(4);
              * @endcode */
             explicit WorkspaceBuffer(size_t n = 0) : buffer_(n) {}
-            /** @brief 按需增长。@param n 所需容量。@pre 无异步访问。@return 无返回值。@code b.reserve(8); @endcode */
+            /** @brief 按需增长。@param n 所需容量。@pre 无异步访问。@note 无返回值。@code b.reserve(8); @endcode */
             void reserve(size_t n) {
                 if (n > buffer_.size()) {
                     buffer_ = CudaBuffer<T>(n);
@@ -86,12 +86,12 @@ namespace thermofem::multigrid {
             WorkspaceBuffer<unsigned char> scratch_; ///< CUB 临时存储。
             bool compact_; ///< 是否使用紧凑排序键。
             /** @brief 创建复用缓存。@param compactKeys 紧凑键开关。@pre 当前设备有效。
-             * @return 无返回值。@code Workspace workspace(true); @endcode */
+             * @note 无返回值。@code Workspace workspace(true); @endcode */
             explicit Workspace(bool compactKeys = false) : count_(1), compact_(compactKeys) {}
             /** @brief 查询键的列位宽。@param rows 阶数。@pre 正数。@return 位宽。@code workspace.bits(64); @endcode
              */
             int bits(int rows) const { return compact_ ? columnBits(rows) : 32; }
-            /** @brief 增长坐标缓冲区。@param n 条目数。@pre 非负。@return 无返回值。@code workspace.entries(10);
+            /** @brief 增长坐标缓冲区。@param n 条目数。@pre 非负。@note 无返回值。@code workspace.entries(10);
              * @endcode */
             void entries(int n) {
                 inputKeys_.reserve(n);
@@ -112,7 +112,7 @@ namespace thermofem::multigrid {
             }
             /** @brief 复用临时容量执行 GPU 排他前缀和。
              * @param in 输入。@param out 输出。@param n 长度。@pre 数组有效且不别名。
-             * @return 无返回值。@code workspace.scan(flags,prefix,n); @endcode */
+             * @note 无返回值。@code workspace.scan(flags,prefix,n); @endcode */
             void scan(int* in, int* out, int n) {
                 size_t bytes = 0;
                 checkCuda(cub::DeviceScan::ExclusiveSum(nullptr, bytes, in, out, n), "AMG scan size");
@@ -131,7 +131,7 @@ namespace thermofem::multigrid {
          * @param values 当前设备上的values数组或参数。
          * @param bits 当前设备上的bits数组或参数。
          * @pre 上一阶段的结构与维度有效，当前设备正确，各数组容量满足对应阶段要求。
-         * @return 无返回值。
+         * @note 无返回值。
          * @code mapEntries<<<blocks,256>>>(n,rowOffsets,columnIndices,entries,map,keys,values,bits); @endcode */
         __global__ void mapEntries(int n, const int* rowOffsets, const int* columnIndices, const double* entries,
                                    const int* map, Key* keys, double* values, int bits) {
@@ -153,7 +153,7 @@ namespace thermofem::multigrid {
          * @param entries CSR 系数。
          * @param bits 键的列位宽。
          * @pre 当前设备正确，数组有效，维度与本阶段匹配，结构由上一阶段验证。
-         * @return 无返回值。
+         * @note 无返回值。
          * @details 行计数供后续排他扫描生成 CSR 偏移，不改变已排序条目顺序。
          * @code unpack(nnz,keys,v,counts,columnIndices,entries,bits); @endcode */
         __global__ void unpack(int nnz, const Key* keys, const double* v, int* counts, int* columnIndices,
@@ -241,7 +241,7 @@ namespace thermofem::multigrid {
          * @param bad 错误标志。
          * @param maximum 行最大非对角强度。
          * @pre 当前设备正确，数组有效，维度与本阶段匹配，结构由上一阶段验证。
-         * @return 无返回值。
+         * @note 无返回值。
          * @details 每行独立扫描，错误通过整数标志归并；最大强度缓存在 setup 工作区。
          * @code validate(n,rowOffsets,columnIndices,a,bad,maximum); @endcode */
         __global__ void validate(int n, const int* rowOffsets, const int* columnIndices, const double* a, int* bad,
@@ -277,7 +277,7 @@ namespace thermofem::multigrid {
          * @param entries CSR 系数。
          * @param flags 扫描或校验标志。
          * @pre 当前设备正确，数组有效，维度与本阶段匹配，结构由上一阶段验证。
-         * @return 无返回值。
+         * @note 无返回值。
          * @details 标志位 1 表示需要排序归并，位 2 表示非法结构或非有限系数。
          * @code checkCanonical(n,nnz,rowOffsets,columnIndices,entries,flags); @endcode */
         __global__ void checkCanonical(int n, int nnz, const int* rowOffsets, const int* columnIndices,
@@ -306,7 +306,7 @@ namespace thermofem::multigrid {
          * @param a 输入矩阵或系数。
          * @param workspace 复用 GPU 工作区。
          * @pre 当前设备正确，数组有效，维度与本阶段匹配，结构由上一阶段验证。
-         * @return 无返回值。
+         * @note 无返回值。
          * @details 仅读回标量错误标志；对角缺失、零或倒数非有限均拒绝。
          * @code validateMatrix(a,workspace); @endcode */
         void validateMatrix(const Matrix& a, Workspace& workspace) {
@@ -332,7 +332,7 @@ namespace thermofem::multigrid {
          * @param count 当前设备上的count数组或参数。
          * @param bits 当前设备上的bits数组或参数。
          * @pre 上一阶段的结构与维度有效，当前设备正确，各数组容量满足对应阶段要求。
-         * @return 无返回值。
+         * @note 无返回值。
          * @code
          * strength<<<blocks,256>>>(n,rowOffsets,columnIndices,entries,maximum,threshold,keys,weights,count,bits);
          * @endcode */
@@ -396,7 +396,7 @@ namespace thermofem::multigrid {
          * @param mate 当前配对端点。
          * @param proposal 每个细点的提议。
          * @pre 当前设备正确，数组有效，维度与本阶段匹配，结构由上一阶段验证。
-         * @return 无返回值。
+         * @note 无返回值。
          * @details 按权重、对称边哈希降序、邻点编号升序决定唯一提议；不在本内核更新匹配。
          * @code propose(n,rowOffsets,columnIndices,weights,mate,proposal); @endcode */
         __global__ void propose(int n, const int* rowOffsets, const int* columnIndices, const double* weights,
@@ -434,7 +434,7 @@ namespace thermofem::multigrid {
          * @param proposal 每个细点的提议。
          * @param mate 当前配对端点。
          * @pre 当前设备正确，数组有效，维度与本阶段匹配，结构由上一阶段验证。
-         * @return 无返回值。
+         * @note 无返回值。
          * @details 全部提议已由上一内核写完；每个线程仅写本端点，避免读写快照混用。
          * @code accept(n,proposal,mate); @endcode */
         __global__ void accept(int n, const int* proposal, int* mate) {
@@ -452,7 +452,7 @@ namespace thermofem::multigrid {
          * @param mate 当前配对端点。
          * @param flags 扫描或校验标志。
          * @pre 当前设备正确，数组有效，维度与本阶段匹配，结构由上一阶段验证。
-         * @return 无返回值。
+         * @note 无返回值。
          * @details 额外尾哨兵为零，后续排他扫描同时产生连续编号和聚合总数。
          * @code roots(n,mate,flags); @endcode */
         __global__ void roots(int n, const int* mate, int* flags) {
@@ -467,7 +467,7 @@ namespace thermofem::multigrid {
          * @param prefix 排他前缀和。
          * @param map 细到粗聚合映射，规范化时允许为空。
          * @pre 当前设备正确，数组有效，维度与本阶段匹配，结构由上一阶段验证。
-         * @return 无返回值。
+         * @note 无返回值。
          * @details 配对两端读取相同根编号；未匹配点读取自身编号。
          * @code assign(n,mate,prefix,map); @endcode */
         __global__ void assign(int n, const int* mate, const int* prefix, int* map) {
@@ -508,7 +508,7 @@ namespace thermofem::multigrid {
          * @param map 细到粗聚合映射，规范化时允许为空。
          * @param second 中间到粗层映射。
          * @pre 当前设备正确，数组有效，维度与本阶段匹配，结构由上一阶段验证。
-         * @return 无返回值。
+         * @note 无返回值。
          * @details 每线程只改一个细点，第二映射只读且与输出不别名。
          * @code compose(n,map,second); @endcode */
         __global__ void compose(int n, int* map, const int* second) {
@@ -528,7 +528,7 @@ namespace thermofem::multigrid {
          * @param values 当前设备上的values数组或参数。
          * @param bits 当前设备上的bits数组或参数。
          * @pre 上一阶段的结构与维度有效，当前设备正确，各数组容量满足对应阶段要求。
-         * @return 无返回值。
+         * @note 无返回值。
          * @code mapGraph<<<blocks,256>>>(n,rowOffsets,columnIndices,entries,map,offsets,keys,values,bits); @endcode
          */
         __global__ void mapGraph(int n, const int* rowOffsets, const int* columnIndices, const double* entries,
@@ -580,7 +580,7 @@ namespace thermofem::multigrid {
          * @param sizes 各聚合成员数。
          * @param members 排序成员表。
          * @pre 当前设备正确，数组有效，维度与本阶段匹配，结构由上一阶段验证。
-         * @return 无返回值。
+         * @note 无返回值。
          * @details 整数原子计数只决定临时槽位；随后排序保证最终成员次序确定。
          * @code slotMembers(n,map,sizes,members); @endcode */
         __global__ void slotMembers(int n, const int* map, int* sizes, int* members) {
@@ -596,7 +596,7 @@ namespace thermofem::multigrid {
          * @param sizes 各聚合成员数。
          * @param members 排序成员表。
          * @pre 当前设备正确，数组有效，维度与本阶段匹配，结构由上一阶段验证。
-         * @return 无返回值。
+         * @note 无返回值。
          * @details 固定小容量使用插入排序，与原子填充的到达顺序无关。
          * @code sortMembers(n,sizes,members); @endcode */
         __global__ void sortMembers(int n, const int* sizes, int* members) {
@@ -620,7 +620,7 @@ namespace thermofem::multigrid {
          * @param map 细到粗聚合映射，规范化时允许为空。
          * @param workspace 复用 GPU 工作区。
          * @pre 当前设备正确，数组有效，维度与本阶段匹配，结构由上一阶段验证。
-         * @return 无返回值。
+         * @note 无返回值。
          * @details 每轮吸收后重建，使下一轮始终读取完整的新快照。
          * @code members(n,coarse,map,workspace); @endcode */
         void members(int n, int coarse, const int* map, Workspace& workspace) {
@@ -640,7 +640,7 @@ namespace thermofem::multigrid {
          * @param proposal 当前设备上的proposal数组或参数。
          * @param scores 当前设备上的scores数组或参数。
          * @pre 上一阶段的结构与维度有效，当前设备正确，各数组容量满足对应阶段要求。
-         * @return 无返回值。
+         * @note 无返回值。
          * @code proposeAbsorption<<<blocks,256>>>(n,rowOffsets,columnIndices,weights,map,sizes,proposal,scores);
          * @endcode */
         __global__ void proposeAbsorption(int n, const int* rowOffsets, const int* columnIndices, const double* weights,
@@ -677,7 +677,7 @@ namespace thermofem::multigrid {
          * @param scores 当前设备上的scores数组或参数。
          * @param nextMap 当前设备上的nextMap数组或参数。
          * @pre 上一阶段的结构与维度有效，当前设备正确，各数组容量满足对应阶段要求。
-         * @return 无返回值。
+         * @note 无返回值。
          * @details 通过去重避免同一来源被多个成员的邻接重复接收，最多接收两点，禁止轮内级联。
          * @code
          * acceptAbsorption<<<blocks,256>>>(coarse,rowOffsets,columnIndices,sizes,members,proposal,scores,nextMap);
@@ -723,7 +723,7 @@ namespace thermofem::multigrid {
          * @param sizes 各聚合成员数。
          * @param flags 扫描或校验标志。
          * @pre 当前设备正确，数组有效，维度与本阶段匹配，结构由上一阶段验证。
-         * @return 无返回值。
+         * @note 无返回值。
          * @details 包含额外零哨兵，不直接修改当前细到粗映射。
          * @code occupied(n,sizes,flags); @endcode */
         __global__ void occupied(int n, const int* sizes, int* flags) {
@@ -740,7 +740,7 @@ namespace thermofem::multigrid {
          * @param out 当前设备上的out数组或参数。
          * @param histogram 当前设备上的histogram数组或参数。
          * @pre 上一阶段的结构与维度有效，当前设备正确，各数组容量满足对应阶段要求。
-         * @return 无返回值。
+         * @note 无返回值。
          * @code packMembers<<<blocks,256>>>(coarse,sizes,slots,offsets,out,histogram); @endcode */
         __global__ void packMembers(int coarse, const int* sizes, const int* slots, const int* offsets, int* out,
                                     int* histogram) {
@@ -820,7 +820,7 @@ namespace thermofem::multigrid {
         /** @brief 在单线程块共享内存中执行最多 64 阶的部分主元 LU。
          * @param n 阶数。@param rowOffsets CSR 偏移。@param columnIndices 列号。@param a 系数。
          * @param lu 输出因子。@param pivots 逐步主元。@param bad 奇异或非有限标志。
-         * @pre n 在 1..64，规范 CSR，以 64 线程启动单个块。@return 无返回值。
+         * @pre n 在 1..64，规范 CSR，以 64 线程启动单个块。@note 无返回值。
          * @details 以矩阵最大绝对值缩放 64*epsilon 阈值。选主元、换行、消元间均块同步。
          * 失败状态由全部线程统一读取并退出，避免同步分歧。
          * @code factor<<<1,64>>>(n,rp,ci,a,lu,pivots,bad); @endcode */
@@ -898,7 +898,7 @@ namespace thermofem::multigrid {
          * @param b 右端项。
          * @param x 输出近似解。
          * @pre 当前设备正确，数组有效，维度与本阶段匹配，结构由上一阶段验证。
-         * @return 无返回值。
+         * @note 无返回值。
          * @details 单块先置换右端，再依次前后代入，共享 double 向量允许 rhs/x 别名。
          * @code triangular(n,lu,pivots,b,x); @endcode */
         template <linalg::Scalar T>
@@ -944,7 +944,7 @@ namespace thermofem::multigrid {
          * @param fine 细向量。
          * @param coarse 粗层维度或粗向量。
          * @pre 当前设备正确，数组有效，维度与本阶段匹配，结构由上一阶段验证。
-         * @return 无返回值。
+         * @note 无返回值。
          * @details 每个粗点由单线程写入，不用浮点原子操作；运算次序由成员编号确定。
          * @code restrictKernel(n,rowOffsets,members,fine,coarse); @endcode */
         template <linalg::Scalar T>
@@ -964,7 +964,7 @@ namespace thermofem::multigrid {
          * @param coarse 粗层维度或粗向量。
          * @param fine 细向量。
          * @pre 当前设备正确，数组有效，维度与本阶段匹配，结构由上一阶段验证。
-         * @return 无返回值。
+         * @note 无返回值。
          * @details 每个细点只读一个粗值并更新自身，保留细层当前近似解。
          * @code prolongKernel(n,map,coarse,fine); @endcode */
         template <linalg::Scalar T>
@@ -1038,7 +1038,7 @@ namespace thermofem::multigrid {
     }
     /** @brief 验证传输向量的设备、维度、策略及非别名约束。
      * @param t 传输。@param f 细向量。@param c 粗向量。
-     * @pre 映射由本模块生成。@return 无返回值。@code validateTransfer(t,f,c); @endcode */
+     * @pre 映射由本模块生成。@note 无返回值。@code validateTransfer(t,f,c); @endcode */
     template <linalg::Scalar T>
     void validateTransfer(const AggregateTransfer& t, const Vector<T>& f, const Vector<T>& c) {
         if (f.size() != size_t(t.fineRows_) || c.size() != size_t(t.coarseRows_) ||
@@ -1097,7 +1097,7 @@ namespace thermofem::multigrid {
         checkCuda(cudaDeviceSynchronize(), "AMG coarse completion");
     }
     /** @brief 逐元素转换 GPU 数组。@param n 长度。@param in 来源。@param out 输出。
-     * @pre 可表示转换，同设备。@return 无返回值。@code convert<<<1,256>>>(n,in,out); @endcode */
+     * @pre 可表示转换，同设备。@note 无返回值。@code convert<<<1,256>>>(n,in,out); @endcode */
     template <BufferElement A, BufferElement B>
         requires std::convertible_to<A, B>
     __global__ void convert(size_t n, const A* in, B* out) {

@@ -18,10 +18,10 @@ namespace thermofem::linalg {
         class OperationScope {
         public:
             /** @brief 激活运算设备。@param device 设备编号，-1 表示不切换。
-             * @pre 编号有效。@return 无返回值。@code OperationScope scope(0); @endcode
+             * @pre 编号有效。@note 无返回值。@code OperationScope scope(0); @endcode
              */
             explicit OperationScope(int device);
-            /** @brief 尽力恢复原设备，无参数、无额外约束。@return 无返回值。
+            /** @brief 尽力恢复原设备，无参数、无额外约束。@note 无返回值。
              * @code { OperationScope scope(0); } @endcode
              */
             ~OperationScope() noexcept;
@@ -43,13 +43,13 @@ namespace thermofem::linalg {
         };
 
         /** @brief 缩放设备数据。@param count 元素数。@param alpha 系数。@param values 设备数据。
-         * @pre count 非负，地址有效，当前设备正确。@return 无返回值。
+         * @pre count 非负，地址有效，当前设备正确。@note 无返回值。
          * @code blasScale(3, 2.0, pointer); @endcode
          */
         template <Scalar T>
         void blasScale(int count, T alpha, T* values);
         /** @brief 累加 alpha*x 到 y。@param count 元素数。@param alpha 系数。@param x 输入。@param y 输出。
-         * @pre 地址有效且所属当前设备。@return 无返回值。@code blasAxpy(3, 2.0, x, y); @endcode
+         * @pre 地址有效且所属当前设备。@note 无返回值。@code blasAxpy(3, 2.0, x, y); @endcode
          */
         template <Scalar T>
         void blasAxpy(int count, T alpha, const T* x, T* y);
@@ -64,30 +64,30 @@ namespace thermofem::linalg {
         template <Scalar T>
         T blasNorm(int count, const T* x, bool oneNorm);
         /** @brief 转置行主序矩阵。@param rows 行数。@param columns 列数。@param input 输入。@param output 输出。
-         * @pre 维度正且地址有效，输入输出不重叠。@return 无返回值。@code blasTranspose(2, 3, a, b); @endcode
+         * @pre 维度正且地址有效，输入输出不重叠。@note 无返回值。@code blasTranspose(2, 3, a, b); @endcode
          */
         template <Scalar T>
         void blasTranspose(int rows, int columns, const T* input, T* output);
         /** @brief 计算行主序矩阵向量积。@param rows 行数。@param columns 列数。@param matrix 矩阵。
-         * @param x 向量。@param y 输出。@pre 维度正且地址有效。@return 无返回值。
+         * @param x 向量。@param y 输出。@pre 维度正且地址有效。@note 无返回值。
          * @code blasGemv(2, 3, a, x, y); @endcode
          */
         template <Scalar T>
         void blasGemv(int rows, int columns, const T* matrix, const T* x, T* y);
         /** @brief 计算行主序矩阵乘积。@param rows 结果行数。@param columns 结果列数。
          * @param inner 内维度。@param a 左矩阵。@param b 右矩阵。@param c 输出。
-         * @pre 维度正且地址有效。@return 无返回值。@code blasGemm(2, 4, 3, a, b, c); @endcode
+         * @pre 维度正且地址有效。@note 无返回值。@code blasGemm(2, 4, 3, a, b, c); @endcode
          */
         template <Scalar T>
         void blasGemm(int rows, int columns, int inner, const T* a, const T* b, T* c);
         /** @brief 用 cuSPARSE 计算 CSR 向量积。@param matrix 已规范化的设备 CSR。@param x 输入。@param y 输出。
-         * @pre 非零矩阵及指针属于当前设备。@return 无返回值。@code sparseMv(matrix, x, y); @endcode
+         * @pre 非零矩阵及指针属于当前设备。@note 无返回值。@code sparseMv(matrix, x, y); @endcode
          */
         template <Scalar T, CsrIndex I>
         void sparseMv(const CsrMatrix<T, I>& matrix, const T* x, T* y);
         /** @brief 用 cuSPARSE 计算 CSR 与行主序矩阵乘积。@param matrix 已规范化 CSR。
          * @param columns 右矩阵列数。@param b 右矩阵。@param c 输出。
-         * @pre 非零矩阵及指针属于当前设备。@return 无返回值。@code sparseMm(matrix, 3, b, c); @endcode
+         * @pre 非零矩阵及指针属于当前设备。@note 无返回值。@code sparseMm(matrix, 3, b, c); @endcode
          */
         template <Scalar T, CsrIndex I>
         void sparseMm(const CsrMatrix<T, I>& matrix, std::size_t columns, const T* b, T* c);

@@ -12,7 +12,7 @@
 namespace {
     /** @brief 在 GPU 上按指定倍数缩放连续元素。
      * @param values 可写设备指针。@param count 元素数。@param scale 缩放倍数。
-     * @pre values 覆盖 count 个元素，所属设备是当前设备。@return 无返回值。
+     * @pre values 覆盖 count 个元素，所属设备是当前设备。@note 无返回值。
      * @code scaleValues<<<1, 32>>>(vector.deviceData(), vector.size(), 2.0); @endcode
      */
     __global__ void scaleValues(double* values, std::size_t count, double scale) {
@@ -23,7 +23,7 @@ namespace {
     }
 
     /** @brief 将 CUDA 失败转换为项目异常。@param result CUDA 结果。@param operation 操作名称。
-     * @pre operation 有效。@return 无返回值。
+     * @pre operation 有效。@note 无返回值。
      * @code checkCuda(cudaDeviceSynchronize(), "cudaDeviceSynchronize"); @endcode
      */
     void checkCuda(cudaError_t result, const char* operation) {

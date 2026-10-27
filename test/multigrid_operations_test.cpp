@@ -14,7 +14,7 @@ namespace {
     template <linalg::Scalar T>
     class MultigridOperationTest : public ::testing::Test {
     protected:
-        /** @brief 激活 CUDA 设备，无参数、无额外约束。@return 无返回值。@code SetUp(); @endcode */
+        /** @brief 激活 CUDA 设备，无参数、无额外约束。@note 无返回值。@code SetUp(); @endcode */
         void SetUp() override {
             int count{};
             if (cudaGetDeviceCount(&count) != cudaSuccess || !count) {

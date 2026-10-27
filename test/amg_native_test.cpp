@@ -14,7 +14,7 @@ namespace {
     /** @brief CUDA 测试环境。@code NativeAmgTest fixture; @endcode */
     class NativeAmgTest : public ::testing::Test {
     protected:
-        /** @brief 选择 GPU，无参数、无额外约束。@return 无返回值。@code SetUp(); @endcode */
+        /** @brief 选择 GPU，无参数、无额外约束。@note 无返回值。@code SetUp(); @endcode */
         void SetUp() override {
             int count{};
             if (cudaGetDeviceCount(&count) != cudaSuccess || !count) {
@@ -52,7 +52,7 @@ namespace {
     }
     /** @brief 比较 GPU CSR 和独立主机基准。
      * @param a GPU 矩阵。@param expected 主机矩阵。@pre 无额外约束。
-     * @return 无返回值。@code compare(a,expected); @endcode */
+     * @note 无返回值。@code compare(a,expected); @endcode */
     void compare(const CsrMatrix<double>& a, const io::HostCsr& expected) {
         EXPECT_EQ(a.rowCount(), size_t(expected.rows_));
         EXPECT_EQ(linalg::detail::hostCopy(a.rowOffsets()), expected.offsets_);
@@ -158,7 +158,7 @@ namespace {
         std::vector<io::HostCsr> matrices_; ///< 主机层次。
         std::vector<testoracle::AggregateMap> maps_; ///< 聚合表。
         std::vector<std::vector<double>> rhs_, x_; ///< 每层右端与近似解。
-        /** @brief 主机 Jacobi 一次更新。@param d 层。@pre 状态有效。@return 无返回值。@code smooth(0); @endcode
+        /** @brief 主机 Jacobi 一次更新。@param d 层。@pre 状态有效。@note 无返回值。@code smooth(0); @endcode
          */
         void smooth(size_t d) {
             const auto& a = matrices_[d];
@@ -176,7 +176,7 @@ namespace {
             x_[d] = std::move(next);
         }
         /** @brief 限制右端或残差。@param d 层。@param residual 是否残差。
-         * @pre 层非粗层。@return 无返回值。@code restrict(0,true); @endcode */
+         * @pre 层非粗层。@note 无返回值。@code restrict(0,true); @endcode */
         void restrict(size_t d, bool residual) {
             auto fine = rhs_[d];
             const auto& a = matrices_[d];
@@ -192,13 +192,13 @@ namespace {
                 rhs_[d + 1][maps_[d].fineToCoarse_[i]] += fine[i];
             }
         }
-        /** @brief 累加延拓。@param d 层。@pre 非粗层。@return 无返回值。@code prolong(0); @endcode */
+        /** @brief 累加延拓。@param d 层。@pre 非粗层。@note 无返回值。@code prolong(0); @endcode */
         void prolong(size_t d) {
             for (size_t i = 0; i < x_[d].size(); ++i) {
                 x_[d][i] += x_[d + 1][maps_[d].fineToCoarse_[i]];
             }
         }
-        /** @brief 主机部分主元消元直接解。@param d 粗层。@pre 非奇异。@return 无返回值。@code solve(d); @endcode
+        /** @brief 主机部分主元消元直接解。@param d 粗层。@pre 非奇异。@note 无返回值。@code solve(d); @endcode
          */
         void solve(size_t d) {
             const auto& a = matrices_[d];
@@ -237,7 +237,7 @@ namespace {
             }
         }
         /** @brief 独立递归 V 或 W。@param d 层。@param w 是否 W。@param zero 是否清零。
-         * @pre 状态完整。@return 无返回值。@code vw(0,true,true); @endcode */
+         * @pre 状态完整。@note 无返回值。@code vw(0,true,true); @endcode */
         void vw(size_t d, bool w, bool zero) {
             if (zero) {
                 std::fill(x_[d].begin(), x_[d].end(), 0);
@@ -256,7 +256,7 @@ namespace {
             smooth(d);
         }
         /** @brief 独立实现参考嵌套 F。@param d 层。@pre 状态完整。
-         * @return 无返回值。@code f(0); @endcode */
+         * @note 无返回值。@code f(0); @endcode */
         void f(size_t d) {
             std::fill(x_[d].begin(), x_[d].end(), 0);
             if (d + 1 == matrices_.size()) {
@@ -271,7 +271,7 @@ namespace {
 
     public:
         /** @brief 构造主机层次。@param a 最细矩阵。@pre 可粗化到 <=4 阶。
-         * @return 无返回值。@code HostCycle oracle(a); @endcode */
+         * @note 无返回值。@code HostCycle oracle(a); @endcode */
         explicit HostCycle(io::HostCsr a) {
             for (;;) {
                 matrices_.push_back(a);
@@ -320,7 +320,7 @@ namespace {
         return a;
     }
     /** @brief 比较三种 GPU 循环和独立主机递归，并验证线性、别名及求解。
-     * @pre GPU 可用。@return 无返回值。@code checkCycles<double,int>(); @endcode */
+     * @pre GPU 可用。@note 无返回值。@code checkCycles<double,int>(); @endcode */
     template <linalg::Scalar T, CsrIndex I>
     void checkCycles() {
         const auto host = poissonHost(127);

@@ -26,11 +26,11 @@ namespace thermofem::linalg {
     class IterationContext {
     public:
         /** @brief 建立矩阵快照及库资源。@param matrix 有限值 CSR。
-         * @pre CUDA 设备可用，维度不超过 INT_MAX。@return 无返回值。
+         * @pre CUDA 设备可用，维度不超过 INT_MAX。@note 无返回值。
          * @code IterationContext<double> context(matrix); @endcode
          */
         explicit IterationContext(const CsrMatrix<T, I>& matrix);
-        /** @brief 释放所属设备上的资源，无参数、无额外约束。@return 无返回值。
+        /** @brief 释放所属设备上的资源，无参数、无额外约束。@note 无返回值。
          * @code { IterationContext<double> context(matrix); } @endcode
          */
         ~IterationContext() noexcept;
@@ -41,25 +41,25 @@ namespace thermofem::linalg {
          */
         const CsrMatrix<T, I>& matrix() const noexcept;
         /** @brief 计算 y=A*x。@param x 输入。@param y 输出。
-         * @pre 维度匹配，不别名，global 存储且同设备。@return 无返回值。
+         * @pre 维度匹配，不别名，global 存储且同设备。@note 无返回值。
          * @code context.multiply(x, y); @endcode
          */
         void multiply(const Vector<T>& x, Vector<T>& y);
         /** @brief 计算真实残差 out=rhs-A*x。@param rhs 右端项。@param x 当前解。@param out 输出。
-         * @pre 维度匹配，同设备 global 向量，输出不与任一输入别名。@return 无返回值。
+         * @pre 维度匹配，同设备 global 向量，输出不与任一输入别名。@note 无返回值。
          * @code context.residual(rhs, x, out); @endcode
          */
         void residual(const Vector<T>& rhs, const Vector<T>& x, Vector<T>& out);
         /** @brief 将工作向量清零。@param x 输入输出。@pre 同设备 global 向量。
-         * @return 无返回值。@code context.clear(x); @endcode
+         * @note 无返回值。@code context.clear(x); @endcode
          */
         void clear(Vector<T>& x);
         /** @brief 执行 y+=alpha*x。@param alpha 系数。@param x 输入。@param y 输出。
-         * @pre 等长 global 向量，同设备。@return 无返回值。@code context.axpy(1, x, y); @endcode
+         * @pre 等长 global 向量，同设备。@note 无返回值。@code context.axpy(1, x, y); @endcode
          */
         void axpy(T alpha, const Vector<T>& x, Vector<T>& y);
         /** @brief 执行 x*=alpha。@param alpha 系数。@param x 输入输出。
-         * @pre global 向量，同设备。@return 无返回值。@code context.scale(2, x); @endcode
+         * @pre global 向量，同设备。@note 无返回值。@code context.scale(2, x); @endcode
          */
         void scale(T alpha, Vector<T>& x);
         /** @brief 计算点积。@param x 输入。@param y 输入。
@@ -73,7 +73,7 @@ namespace thermofem::linalg {
         /** @brief 执行 Jacobi 更新 x+=weight*inverse*(rhs-product)。
          * @param weight 松弛系数。@param inverse 逆对角线。@param rhs 右端项。
          * @param product 已计算的 A*x。@param x 输入输出。
-         * @pre 等长 global 向量且同设备。@return 无返回值。
+         * @pre 等长 global 向量且同设备。@note 无返回值。
          * @code context.jacobi(0.7, inverse, rhs, product, x); @endcode
          */
         void jacobi(T weight, const Vector<T>& inverse, const Vector<T>& rhs, const Vector<T>& product, Vector<T>& x);

@@ -27,7 +27,7 @@ namespace thermofem {
     class Jacobi final : public Smoother<T, I> {
     public:
         /** @brief 指定平滑参数。@param sweeps 扫描次数。@param weight 松弛系数。
-         * @pre sweeps 正，weight 有限且在 (0,2) 内。@return 无返回值。
+         * @pre sweeps 正，weight 有限且在 (0,2) 内。@note 无返回值。
          * @code Jacobi<double> smoother(2, 0.7); @endcode
          */
         explicit Jacobi(int sweeps = 2, T weight = T(2) / T(3)) : sweeps_(sweeps), weight_(weight) {
@@ -37,7 +37,7 @@ namespace thermofem {
         }
         /** @brief 复制矩阵并缓存逆对角线。@param matrix 系数矩阵。
          * @pre 非空有限值方阵，合并重复项后各对角非零且倒数有限。
-         * @return 无返回值。@code smoother.setup(a); @endcode
+         * @note 无返回值。@code smoother.setup(a); @endcode
          * @details 先规范化 CSR，再通过 inverseDiagonal 提取逆对角线。重复列被合并，
          * 因而抵消为零的重复对角项同样被拒绝。成功后不再引用输入矩阵。
          * @throws std::invalid_argument 方阵或对角线条件不满足。
@@ -50,7 +50,7 @@ namespace thermofem {
             state_ = std::move(next);
         }
         /** @brief 从传入初值执行指定扫描次数。@param rhs 右端项。@param x 输入输出解。
-         * @pre setup 成功，尺寸设备匹配。@return 无返回值。
+         * @pre setup 成功，尺寸设备匹配。@note 无返回值。
          * @code smoother.apply(b, x); @endcode
          * @details 不将初值重置为零。内部缓存承接各类内存策略，循环内复用已有库资源。
          * 空间开销由 setup 决定，扫描过程不重新建立矩阵描述符。
@@ -80,7 +80,7 @@ namespace thermofem {
         struct State {
             linalg::IterationContext<T, I> context_; ///< 矩阵快照与持久化库资源。
             Vector<T> inverse_, rhs_, x_, product_; ///< 逆对角线及执行缓存。
-            /** @brief 分配缓存。@param matrix 输入。@pre 当前设备正确。@return 无返回值。
+            /** @brief 分配缓存。@param matrix 输入。@pre 当前设备正确。@note 无返回值。
              * @code State state(matrix); @endcode
              */
             explicit State(const CsrMatrix<T, I>& matrix) :

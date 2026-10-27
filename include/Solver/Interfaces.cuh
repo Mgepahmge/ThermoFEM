@@ -28,16 +28,16 @@ namespace thermofem {
     template <linalg::Scalar T, CsrIndex I = int>
     class Smoother {
     public:
-        /** @brief 多态释放资源，无参数、无额外约束。@return 无返回值。
+        /** @brief 多态释放资源，无参数、无额外约束。@note 无返回值。
          * @code smoother.reset(); @endcode
          */
         virtual ~Smoother() = default;
         /** @brief 保存矩阵并建立缓存。@param matrix 系数矩阵。
-         * @pre 非空有限值方阵。@return 无返回值。@code smoother.setup(matrix); @endcode
+         * @pre 非空有限值方阵。@note 无返回值。@code smoother.setup(matrix); @endcode
          */
         virtual void setup(const CsrMatrix<T, I>& matrix) = 0;
         /** @brief 对初值执行平滑。@param rhs 右端项。@param x 输入输出近似解。
-         * @pre setup 成功，尺寸设备匹配。@return 无返回值。@code smoother.apply(rhs, x); @endcode
+         * @pre setup 成功，尺寸设备匹配。@note 无返回值。@code smoother.apply(rhs, x); @endcode
          */
         virtual void apply(const Vector<T>& rhs, Vector<T>& x) = 0;
     };
@@ -51,16 +51,16 @@ namespace thermofem {
     template <linalg::Scalar T, CsrIndex I = int>
     class Preconditioner {
     public:
-        /** @brief 多态释放资源，无参数、无额外约束。@return 无返回值。
+        /** @brief 多态释放资源，无参数、无额外约束。@note 无返回值。
          * @code p.reset(); @endcode
          */
         virtual ~Preconditioner() = default;
         /** @brief 建立预条件状态。@param matrix 系数矩阵。
-         * @pre 非空有限值方阵。@return 无返回值。@code p.setup(matrix); @endcode
+         * @pre 非空有限值方阵。@note 无返回值。@code p.setup(matrix); @endcode
          */
         virtual void setup(const CsrMatrix<T, I>& matrix) = 0;
         /** @brief 近似求解并覆盖输出。@param rhs 输入。@param x 输出。
-         * @pre setup 成功，尺寸设备匹配。@return 无返回值。@code p.apply(rhs, x); @endcode
+         * @pre setup 成功，尺寸设备匹配。@note 无返回值。@code p.apply(rhs, x); @endcode
          */
         virtual void apply(const Vector<T>& rhs, Vector<T>& x) = 0;
     };
@@ -73,12 +73,12 @@ namespace thermofem {
     template <linalg::Scalar T, CsrIndex I = int>
     class Solver {
     public:
-        /** @brief 多态释放资源，无参数、无额外约束。@return 无返回值。
+        /** @brief 多态释放资源，无参数、无额外约束。@note 无返回值。
          * @code solver.reset(); @endcode
          */
         virtual ~Solver() = default;
         /** @brief 建立矩阵及预条件状态。@param matrix 系数矩阵。
-         * @pre 非空有限值方阵。@return 无返回值。@code solver.setup(matrix); @endcode
+         * @pre 非空有限值方阵。@note 无返回值。@code solver.setup(matrix); @endcode
          */
         virtual void setup(const CsrMatrix<T, I>& matrix) = 0;
         /** @brief 从初值求解 A*x=rhs。@param rhs 右端项。@param x 输入输出解。
@@ -89,7 +89,7 @@ namespace thermofem {
     /** @brief 提供求解组件共享的矩阵和向量前置条件检查。 */
     namespace iteration {
         /** @brief 检查非空方阵。@tparam T 精度。@tparam I 索引。@param matrix 输入。
-         * @pre 无额外约束。@return 无返回值。@code validateMatrix(matrix); @endcode
+         * @pre 无额外约束。@note 无返回值。@code validateMatrix(matrix); @endcode
          */
         template <linalg::Scalar T, CsrIndex I>
         void validateMatrix(const CsrMatrix<T, I>& matrix) {
@@ -98,7 +98,7 @@ namespace thermofem {
             }
         }
         /** @brief 检查向量尺寸与设备。@tparam T 精度。@param n 维度。@param device 所属设备。
-         * @param rhs 右端项。@param x 解。@pre 无额外约束。@return 无返回值。
+         * @param rhs 右端项。@param x 解。@pre 无额外约束。@note 无返回值。
          * @code validateVectors(n, device, rhs, x); @endcode
          */
         template <linalg::Scalar T>

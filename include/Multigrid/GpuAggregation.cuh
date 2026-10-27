@@ -34,9 +34,9 @@ namespace thermofem::multigrid {
     class GpuAggregation {
     public:
         /** @brief 分配复用工作区。@param compactKeys 使用最少位数的坐标键。
-         * @pre 当前设备有效。@return 无返回值。@code GpuAggregation setup(true); @endcode */
+         * @pre 当前设备有效。@note 无返回值。@code GpuAggregation setup(true); @endcode */
         explicit GpuAggregation(bool compactKeys = false);
-        /** @brief 释放工作区，无参数。@pre 无并发访问。@return 无返回值。
+        /** @brief 释放工作区，无参数。@pre 无并发访问。@note 无返回值。
          * @code { GpuAggregation setup; } @endcode */
         ~GpuAggregation();
         GpuAggregation(const GpuAggregation&) = delete; ///< 工作区不可复制。
@@ -46,7 +46,7 @@ namespace thermofem::multigrid {
          * @return 规范矩阵。@code auto canonicalA=setup.canonical(a); @endcode */
         CsrMatrix<double> canonical(const CsrMatrix<double>& a);
         /** @brief 校验有限值、非零对角及有限倒数，并缓存行最大非对角强度。
-         * @param a 规范方阵。@pre 当前设备正确。@return 无返回值；不合法抛异常。
+         * @param a 规范方阵。@pre 当前设备正确。@note 无返回值；不合法抛异常。
          * @code setup.validate(a); @endcode */
         void validate(const CsrMatrix<double>& a);
         /** @brief 生成对称强图，各方向的归一化强度取最大值。
@@ -69,13 +69,13 @@ namespace thermofem::multigrid {
     };
     /** @brief GPU 聚合限制 coarse=P^T*fine。
      * @param t 映射。@param fine 细层输入。@param coarse 粗层输出。
-     * @pre 同设备 global 向量，维度匹配且不别名。@return 无返回值。
+     * @pre 同设备 global 向量，维度匹配且不别名。@note 无返回值。
      * @code restrictAggregates(t,r,bc); @endcode */
     template <linalg::Scalar T>
     void restrictAggregates(const AggregateTransfer& t, const Vector<T>& fine, Vector<T>& coarse);
     /** @brief GPU 延拓并累加 fine+=P*coarse。
      * @param t 映射。@param coarse 粗层输入。@param fine 细层输入输出。
-     * @pre 同设备 global 向量，维度匹配且不别名。@return 无返回值。
+     * @pre 同设备 global 向量，维度匹配且不别名。@note 无返回值。
      * @code prolongAggregates(t,ec,x); @endcode */
     template <linalg::Scalar T>
     void prolongAggregates(const AggregateTransfer& t, const Vector<T>& coarse, Vector<T>& fine);
@@ -86,7 +86,7 @@ namespace thermofem::multigrid {
     /** @brief GPU 主元置换及三角求解，覆盖解。
      * @param factor 因子。@param rhs 右端。@param x 输出。
      * @pre 因子成功，维度匹配，同设备 global；rhs 可与 x 别名。
-     * @return 无返回值。@code solveCoarse(factor,b,x); @endcode */
+     * @note 无返回值。@code solveCoarse(factor,b,x); @endcode */
     template <linalg::Scalar T>
     void solveCoarse(const CoarseFactor& factor, const Vector<T>& rhs, Vector<T>& x);
     /** @brief 在 GPU 上转换矩阵数值与索引类型，不排序、不改变结构。

@@ -23,20 +23,20 @@ namespace thermofem {
     class Vector {
     public:
         using ValueType = T; ///< 向量元素类型。
-        /** @brief 创建空向量。@param strategy 策略。@pre 无额外约束。@return 无返回值。
+        /** @brief 创建空向量。@param strategy 策略。@pre 无额外约束。@note 无返回值。
          * @code Vector<double> x; @endcode */
         explicit Vector(MemoryStrategy strategy = GlobalMemory{}) noexcept : values_(strategy) {}
         /** @brief 分配未初始化元素。@param count 长度。@param strategy 策略。
-         * @pre 字节数不溢出，非空分配需要 CUDA。@return 无返回值。@code Vector<double> x(10); @endcode */
+         * @pre 字节数不溢出，非空分配需要 CUDA。@note 无返回值。@code Vector<double> x(10); @endcode */
         explicit Vector(std::size_t count, MemoryStrategy strategy = GlobalMemory{}) : values_(count, strategy) {}
         /** @brief 从主机构造向量。@param values 输入。@param strategy 策略。
-         * @pre 主机数组有效，非空分配需要 CUDA。@return 无返回值。@code Vector<double> x(input); @endcode */
+         * @pre 主机数组有效，非空分配需要 CUDA。@note 无返回值。@code Vector<double> x(input); @endcode */
         explicit Vector(std::span<const T> values, MemoryStrategy strategy = GlobalMemory{}) :
             values_(values, strategy) {}
-        /** @brief 深拷贝存储及策略。@param other 来源。@pre 外部访问已同步。@return 无返回值。
+        /** @brief 深拷贝存储及策略。@param other 来源。@pre 外部访问已同步。@note 无返回值。
          * @code auto y = x; @endcode */
         Vector(const Vector& other) = default;
-        /** @brief 接管存储并清空来源。@param other 来源。@pre 外部访问已同步。@return 无返回值。
+        /** @brief 接管存储并清空来源。@param other 来源。@pre 外部访问已同步。@note 无返回值。
          * @code auto y = std::move(x); @endcode */
         Vector(Vector&& other) noexcept = default;
         /** @brief 深拷贝并采用来源策略，失败不改变目标。@param other 来源。
@@ -45,26 +45,26 @@ namespace thermofem {
         /** @brief 接管来源并释放旧存储。@param other 来源。@pre 外部访问已同步。
          * @return 当前对象。@code y = std::move(x); @endcode */
         Vector& operator=(Vector&& other) noexcept = default;
-        /** @brief 自动释放存储，无参数。@pre 外部访问已同步。@return 无返回值。
+        /** @brief 自动释放存储，无参数。@pre 外部访问已同步。@note 无返回值。
          * @code { Vector<double> x(3); } @endcode */
         ~Vector() = default;
         /** @brief 复制向量数据并保留目标存储。@param other 来源。
-         * @pre 等长、同设备且外部访问已同步。@return 无返回值。@code y.copyDataFrom(x); @endcode */
+         * @pre 等长、同设备且外部访问已同步。@note 无返回值。@code y.copyDataFrom(x); @endcode */
         void copyDataFrom(const Vector& other) { values_.copyDataFrom(other.values_); }
         /** @brief 显式导入 Buffer 数据并保留目标存储。@param other 来源。
-         * @pre 等长、同设备且外部访问已同步。@return 无返回值。@code x.copyDataFrom(buffer); @endcode */
+         * @pre 等长、同设备且外部访问已同步。@note 无返回值。@code x.copyDataFrom(buffer); @endcode */
         void copyDataFrom(const CudaBuffer<T>& other) { values_.copyDataFrom(other); }
         /** @brief 保留数据并转换策略，失败不改变对象。@param strategy 策略。
-         * @pre 外部访问已同步。@return 无返回值。@code x.changeMemoryType(PinnedMemory{}); @endcode */
+         * @pre 外部访问已同步。@note 无返回值。@code x.changeMemoryType(PinnedMemory{}); @endcode */
         void changeMemoryType(MemoryStrategy strategy) { values_.changeMemoryType(strategy); }
         /** @brief 从主机同步导入。@param values 输入。@pre 等长，外部访问已同步。
-         * @return 无返回值。@code x.copyFromHost(input); @endcode */
+         * @note 无返回值。@code x.copyFromHost(input); @endcode */
         void copyFromHost(std::span<const T> values) { values_.copyFromHost(values); }
         /** @brief 同步导出至主机。@param values 输出。@pre 等长，外部访问已同步。
-         * @return 无返回值。@code x.copyToHost(output); @endcode */
+         * @note 无返回值。@code x.copyToHost(output); @endcode */
         void copyToHost(std::span<T> values) const { values_.copyToHost(values); }
         /** @brief 交换所有权与策略。@param other 另一向量。@pre 无额外约束。
-         * @return 无返回值。@code x.swap(y); @endcode */
+         * @note 无返回值。@code x.swap(y); @endcode */
         void swap(Vector& other) noexcept { values_.swap(other.values_); }
         /** @brief 查询长度，无参数、无额外约束。@return 长度。@code auto n = x.size(); @endcode */
         [[nodiscard]] std::size_t size() const noexcept { return values_.size(); }

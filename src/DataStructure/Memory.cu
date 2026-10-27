@@ -11,7 +11,7 @@ namespace thermofem {
     namespace detail {
         namespace {
             /** @brief 检查 CUDA 调用结果，失败时抛出异常。
-             * @param result CUDA 结果。@param operation 操作名称。@pre operation 有效。@return 无返回值。
+             * @param result CUDA 结果。@param operation 操作名称。@pre operation 有效。@note 无返回值。
              * @code checkCuda(cudaGetLastError(), "kernel launch"); @endcode
              */
             void checkCuda(cudaError_t result, const char* operation) {
@@ -25,7 +25,7 @@ namespace thermofem {
              */
             class DeviceScope {
             public:
-                /** @brief 激活指定设备。@param device 目标设备。@pre 编号有效。@return 无返回值。
+                /** @brief 激活指定设备。@param device 目标设备。@pre 编号有效。@note 无返回值。
                  * @code DeviceScope scope(0); @endcode
                  */
                 explicit DeviceScope(int device) {
@@ -34,7 +34,7 @@ namespace thermofem {
                         checkCuda(cudaSetDevice(device), "cudaSetDevice");
                     }
                 }
-                /** @brief 尽力恢复原设备，无参数、无额外约束。@return 无返回值。
+                /** @brief 尽力恢复原设备，无参数、无额外约束。@note 无返回值。
                  * @code { DeviceScope scope(0); } @endcode
                  */
                 ~DeviceScope() noexcept { (void)cudaSetDevice(previousDevice_); }
@@ -88,19 +88,19 @@ namespace thermofem {
                 return result;
             }
             /** @brief 尽力释放全局内存。@param pointer 所属设备上的分配地址。
-             * @pre 外部异步访问已结束。@return 无返回值。@code deallocate(GlobalMemory{}, pointer); @endcode
+             * @pre 外部异步访问已结束。@note 无返回值。@code deallocate(GlobalMemory{}, pointer); @endcode
              */
             void deallocate(GlobalMemory, void* pointer) noexcept { (void)cudaFree(pointer); }
             /** @brief 尽力释放页锁定主机内存。@param pointer 对应分配地址。
-             * @pre 外部异步访问已结束。@return 无返回值。@code deallocate(PinnedMemory{}, pointer); @endcode
+             * @pre 外部异步访问已结束。@note 无返回值。@code deallocate(PinnedMemory{}, pointer); @endcode
              */
             void deallocate(PinnedMemory, void* pointer) noexcept { (void)cudaFreeHost(pointer); }
             /** @brief 尽力释放映射主机内存。@param pointer 主机分配地址。
-             * @pre 外部异步访问已结束。@return 无返回值。@code deallocate(MappedMemory{}, pointer); @endcode
+             * @pre 外部异步访问已结束。@note 无返回值。@code deallocate(MappedMemory{}, pointer); @endcode
              */
             void deallocate(MappedMemory, void* pointer) noexcept { (void)cudaFreeHost(pointer); }
             /** @brief 尽力释放统一内存。@param pointer 所属设备上的分配地址。
-             * @pre 外部异步访问已结束。@return 无返回值。@code deallocate(ManagedMemory{}, pointer); @endcode
+             * @pre 外部异步访问已结束。@note 无返回值。@code deallocate(ManagedMemory{}, pointer); @endcode
              */
             void deallocate(ManagedMemory, void* pointer) noexcept { (void)cudaFree(pointer); }
         } // namespace

@@ -12,7 +12,7 @@ namespace thermofem {
     class Identity final : public Preconditioner<T, I> {
     public:
         /** @brief 校验矩阵并记录尺寸设备。@param matrix 输入。
-         * @pre 非空有限值方阵。@return 无返回值。@code identity.setup(a); @endcode
+         * @pre 非空有限值方阵。@note 无返回值。@code identity.setup(a); @endcode
          */
         void setup(const CsrMatrix<T, I>& matrix) override {
             iteration::validateMatrix(matrix);
@@ -25,7 +25,7 @@ namespace thermofem {
             device_ = matrix.rowOffsets().deviceId();
         }
         /** @brief 复制右端项，保留输出地址与策略。@param rhs 输入。@param x 输出。
-         * @pre setup 成功，尺寸设备匹配。@return 无返回值。@code identity.apply(b, z); @endcode
+         * @pre setup 成功，尺寸设备匹配。@note 无返回值。@code identity.apply(b, z); @endcode
          */
         void apply(const Vector<T>& rhs, Vector<T>& x) override {
             if (!size_) {

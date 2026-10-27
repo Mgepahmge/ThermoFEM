@@ -18,7 +18,7 @@ namespace {
     template <la::Scalar T>
     class LinearAlgebraTest : public ::testing::Test {
     protected:
-        /** @brief 选择首个设备，无参数。@pre 无额外约束。@return 无返回值。
+        /** @brief 选择首个设备，无参数。@pre 无额外约束。@note 无返回值。
          * @code SetUp(); @endcode
          */
         void SetUp() override {
@@ -48,7 +48,7 @@ namespace {
         return result;
     }
     /** @brief 检查缓冲区与主机期望值一致。@tparam T 精度。@param buffer 结果。@param expected 期望值。
-     * @pre 尺寸相同且数据已同步。@return 无返回值。@code expectValues(result, {1, 2}); @endcode
+     * @pre 尺寸相同且数据已同步。@note 无返回值。@code expectValues(result, {1, 2}); @endcode
      */
     template <la::Scalar T>
     void expectValues(const CudaBuffer<T>& buffer, std::initializer_list<T> expected) {
@@ -62,13 +62,13 @@ namespace {
         }
     }
     /** @brief 显式检查向量存储。@tparam T 精度。@param vector 结果。@param expected 期望值。
-     * @pre 数据已同步。@return 无返回值。@code expectValues(x, {1, 2}); @endcode */
+     * @pre 数据已同步。@note 无返回值。@code expectValues(x, {1, 2}); @endcode */
     template <la::Scalar T>
     void expectValues(const Vector<T>& vector, std::initializer_list<T> expected) {
         expectValues(vector.values(), expected);
     }
     /** @brief 验证 CSR 的数学矩阵值而非存储顺序。@tparam T 精度。@tparam I 索引。
-     * @param matrix 结果。@param expected 行主序期望值。@pre 尺寸匹配。@return 无返回值。
+     * @param matrix 结果。@param expected 行主序期望值。@pre 尺寸匹配。@note 无返回值。
      * @code expectSparse(matrix, {2, 0, 0, 3}); @endcode
      */
     template <la::Scalar T, CsrIndex I>
@@ -92,7 +92,7 @@ namespace {
     }
 
     /** @brief 验证全部内存类型组合下的向量封装和运算符，无参数。
-     * @pre CUDA 可用。@return 无返回值。@code ./build/test/thermofem_tests --gtest_filter=*vectorArithmetic* @endcode
+     * @pre CUDA 可用。@note 无返回值。@code ./build/test/thermofem_tests --gtest_filter=*vectorArithmetic* @endcode
      */
     TYPED_TEST(LinearAlgebraTest, vectorArithmetic) {
         using T = TypeParam;
@@ -128,7 +128,7 @@ namespace {
     }
 
     /** @brief 验证非方阵行主序、GEMV、GEMM、GEAM 和矩阵运算符，无参数。
-     * @pre CUDA 可用。@return 无返回值。@code ./build/test/thermofem_tests --gtest_filter=*denseArithmetic* @endcode
+     * @pre CUDA 可用。@note 无返回值。@code ./build/test/thermofem_tests --gtest_filter=*denseArithmetic* @endcode
      */
     TYPED_TEST(LinearAlgebraTest, denseArithmetic) {
         using T = TypeParam;
@@ -168,7 +168,7 @@ namespace {
 
     /** @brief 验证两种索引类型的稀疏运算和重复列输入。
      * @tparam T 精度。@tparam I 索引。@param strategy 内存策略。
-     * @pre CUDA 可用。@return 无返回值。@code checkSparse<double, int>(GlobalMemory{}); @endcode
+     * @pre CUDA 可用。@note 无返回值。@code checkSparse<double, int>(GlobalMemory{}); @endcode
      */
     template <la::Scalar T, CsrIndex I>
     void checkSparse(MemoryStrategy strategy) {
@@ -206,7 +206,7 @@ namespace {
         expectSparse<T, I>(copy, {14, 16, 0, 10});
         EXPECT_THROW(a / 0, std::domain_error);
     }
-    /** @brief 验证全部稀疏策略及索引组合，无参数。@pre CUDA 可用。@return 无返回值。
+    /** @brief 验证全部稀疏策略及索引组合，无参数。@pre CUDA 可用。@note 无返回值。
      * @code ./build/test/thermofem_tests --gtest_filter=*sparseArithmetic* @endcode
      */
     TYPED_TEST(LinearAlgebraTest, sparseArithmetic) {
@@ -216,7 +216,7 @@ namespace {
         }
     }
 
-    /** @brief 验证零内维度、零行列、零非零元等边界，无参数。@pre CUDA 可用。@return 无返回值。
+    /** @brief 验证零内维度、零行列、零非零元等边界，无参数。@pre CUDA 可用。@note 无返回值。
      * @code ./build/test/thermofem_tests --gtest_filter=*zeroDimensions* @endcode
      */
     TYPED_TEST(LinearAlgebraTest, zeroDimensions) {
@@ -266,7 +266,7 @@ namespace {
         EXPECT_THROW(sparse * b, std::invalid_argument);
     }
 
-    /** @brief 验证运算设备切换及跨设备拒绝，无参数。@pre 两个设备可用。@return 无返回值。
+    /** @brief 验证运算设备切换及跨设备拒绝，无参数。@pre 两个设备可用。@note 无返回值。
      * @code ./build/test/thermofem_tests --gtest_filter=*deviceOwnership* @endcode
      */
     TYPED_TEST(LinearAlgebraTest, deviceOwnership) {

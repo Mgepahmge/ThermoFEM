@@ -24,7 +24,7 @@ namespace thermofem::io {
             return false;
         }
         /** @brief 检查一行是否含额外字段。@param row 已解析行。@pre 无额外约束。
-         * @return 无返回值。@code requireEnd(row); @endcode */
+         * @note 无返回值。@code requireEnd(row); @endcode */
         void requireEnd(std::istringstream& row) {
             std::string extra;
             if (row >> extra) {

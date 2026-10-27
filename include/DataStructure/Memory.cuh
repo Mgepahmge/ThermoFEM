@@ -52,7 +52,7 @@ namespace thermofem {
     class CudaError : public std::runtime_error {
     public:
         /** @brief 构造 CUDA 异常。@param code CUDA 错误码。@param operation 操作名称。
-         * @pre operation 非空。@return 无返回值。
+         * @pre operation 非空。@note 无返回值。
          * @code thermofem::CudaError error(cudaErrorMemoryAllocation, "cudaMalloc"); @endcode
          */
         CudaError(cudaError_t code, const char* operation);
@@ -81,21 +81,21 @@ namespace thermofem {
          */
         class MemoryStorage {
         public:
-            /** @brief 创建空存储。@param strategy 内存策略。@pre 无额外约束。@return 无返回值。
+            /** @brief 创建空存储。@param strategy 内存策略。@pre 无额外约束。@note 无返回值。
              * @code thermofem::detail::MemoryStorage storage; @endcode
              */
             explicit MemoryStorage(MemoryStrategy strategy = GlobalMemory{}) noexcept;
             /** @brief 分配未初始化存储。@param bytes 字节数。@param strategy 内存策略。
-             * @pre 非零分配需要可用的 CUDA 设备。@return 无返回值。
+             * @pre 非零分配需要可用的 CUDA 设备。@note 无返回值。
              * @code thermofem::detail::MemoryStorage storage(64, thermofem::GlobalMemory{}); @endcode
              */
             MemoryStorage(std::size_t bytes, MemoryStrategy strategy);
             /** @brief 深拷贝来源数据及策略。@param other 来源。@pre 来源没有未完成的异步访问。
-             * @return 无返回值。@code auto copy = storage; @endcode
+             * @note 无返回值。@code auto copy = storage; @endcode
              */
             MemoryStorage(const MemoryStorage& other);
             /** @brief 接管来源所有权及策略。@param other 来源，随后为空。
-             * @pre 无额外约束。@return 无返回值。@code auto moved = std::move(storage); @endcode
+             * @pre 无额外约束。@note 无返回值。@code auto moved = std::move(storage); @endcode
              */
             MemoryStorage(MemoryStorage&& other) noexcept;
             /** @brief 以强异常保证深拷贝并覆盖策略。@param other 来源。@pre 外部异步操作已结束。
@@ -106,31 +106,31 @@ namespace thermofem {
              * @pre 外部异步操作已结束。@return 当前对象。@code target = std::move(source); @endcode
              */
             MemoryStorage& operator=(MemoryStorage&& other) noexcept;
-            /** @brief 释放资源，无参数。@pre 外部异步操作已结束。@return 无返回值。
+            /** @brief 释放资源，无参数。@pre 外部异步操作已结束。@note 无返回值。
              * @code { thermofem::detail::MemoryStorage storage; } @endcode
              */
             ~MemoryStorage() noexcept;
             /** @brief 交换存储元数据与所有权。@param other 交换对象。@pre 无额外约束。
-             * @return 无返回值。@code target.swap(source); @endcode
+             * @note 无返回值。@code target.swap(source); @endcode
              */
             void swap(MemoryStorage& other) noexcept;
             /** @brief 同步复制数据，保留目标策略和地址。@param other 来源。
              * @pre 字节数相同，非空存储属于同一设备，外部异步操作已结束。
-             * @return 无返回值。@code target.copyDataFrom(source); @endcode
+             * @note 无返回值。@code target.copyDataFrom(source); @endcode
              */
             void copyDataFrom(const MemoryStorage& other);
             /** @brief 保留数据并切换策略，失败时保持原对象。@param strategy 新策略。
-             * @pre 外部异步操作已结束。@return 无返回值。
+             * @pre 外部异步操作已结束。@note 无返回值。
              * @code storage.changeMemoryType(thermofem::PinnedMemory{}); @endcode
              */
             void changeMemoryType(MemoryStrategy strategy);
             /** @brief 从主机同步导入全部字节。@param source 主机地址。@param bytes 字节数。
-             * @pre 尺寸匹配，非空源有效且与目标不重叠，异步访问已结束。@return 无返回值。
+             * @pre 尺寸匹配，非空源有效且与目标不重叠，异步访问已结束。@note 无返回值。
              * @code storage.copyFromHost(values, sizeof(values)); @endcode
              */
             void copyFromHost(const void* source, std::size_t bytes);
             /** @brief 同步导出全部字节至主机。@param target 主机地址。@param bytes 字节数。
-             * @pre 尺寸匹配，非空目标有效且与源不重叠，异步访问已结束。@return 无返回值。
+             * @pre 尺寸匹配，非空目标有效且与源不重叠，异步访问已结束。@note 无返回值。
              * @code storage.copyToHost(values, sizeof(values)); @endcode
              */
             void copyToHost(void* target, std::size_t bytes) const;

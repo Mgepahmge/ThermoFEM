@@ -13,7 +13,7 @@ namespace thermofem {
         /** @brief 在设备端验证 CSR 结构，仅回传错误标志。
          * @param rows 行数。@param columns 列数。@param count 非零数。@param offsets 行偏移。
          * @param indices 列索引。@param wide 是否使用 64 位索引。@param device 所属设备。@pre 地址有效。
-         * @return 无返回值，非法结构抛异常。@code validateDeviceCsr(n,n,nz,rp,ci,false,device); @endcode */
+         * @note 无返回值，非法结构抛异常。@code validateDeviceCsr(n,n,nz,rp,ci,false,device); @endcode */
         void validateDeviceCsr(std::size_t rows, std::size_t columns, std::size_t count, const void* offsets,
                                const void* indices, bool wide, int device);
     } // namespace detail
@@ -37,7 +37,7 @@ namespace thermofem {
     class CsrMatrix {
     public:
         using ValueType = T; ///< 非零元素类型。
-        /** @brief 创建无存储的空矩阵，无参数、无额外约束。@return 无返回值。
+        /** @brief 创建无存储的空矩阵，无参数、无额外约束。@note 无返回值。
          * @code thermofem::CsrMatrix<double> matrix; @endcode
          */
         CsrMatrix() = default;
@@ -76,7 +76,7 @@ namespace thermofem {
          * @param rows 行数。@param columns 列数。@param rowOffsets 行偏移数组。
          * @param columnIndices 列索引数组。@param values 非零元素数组。@param strategy 内存策略。
          * @pre 偏移从 0 开始单调不减且末项等于非零数，列索引合法，尺寸可由 Index 表示。
-         * @return 无返回值。@code thermofem::CsrMatrix<double> matrix(2, 2, offsets, columns, entries); @endcode
+         * @note 无返回值。@code thermofem::CsrMatrix<double> matrix(2, 2, offsets, columns, entries); @endcode
          */
         CsrMatrix(std::size_t rows, std::size_t columns, std::span<const Index> rowOffsets,
                   std::span<const Index> columnIndices, std::span<const T> values,
@@ -86,11 +86,11 @@ namespace thermofem {
             columnIndices_ = CudaBuffer<Index>(columnIndices, strategy);
             values_ = CudaBuffer<T>(values, strategy);
         }
-        /** @brief 深拷贝全部数据及策略。@param other 来源。@pre 异步访问已结束。@return 无返回值。
+        /** @brief 深拷贝全部数据及策略。@param other 来源。@pre 异步访问已结束。@note 无返回值。
          * @code auto copy = matrix; @endcode
          */
         CsrMatrix(const CsrMatrix& other) = default;
-        /** @brief 接管来源并清空其维度。@param other 来源。@pre 无额外约束。@return 无返回值。
+        /** @brief 接管来源并清空其维度。@param other 来源。@pre 无额外约束。@note 无返回值。
          * @code auto moved = std::move(matrix); @endcode
          */
         CsrMatrix(CsrMatrix&& other) noexcept { swap(other); }
@@ -115,7 +115,7 @@ namespace thermofem {
             return *this;
         }
         /** @brief 交换维度、策略及三个缓冲区。@param other 交换对象。@pre 无额外约束。
-         * @return 无返回值。@code target.swap(source); @endcode
+         * @note 无返回值。@code target.swap(source); @endcode
          */
         void swap(CsrMatrix& other) noexcept {
             std::swap(rowCount_, other.rowCount_);
@@ -125,7 +125,7 @@ namespace thermofem {
             values_.swap(other.values_);
         }
         /** @brief 保留矩阵内容并原地转换全部缓冲区，失败不改变原对象。
-         * @param strategy 新策略。@pre 异步访问已结束。@return 无返回值。
+         * @param strategy 新策略。@pre 异步访问已结束。@note 无返回值。
          * @code matrix.changeMemoryType(thermofem::PinnedMemory{}); @endcode
          */
         void changeMemoryType(MemoryStrategy strategy) {
@@ -139,7 +139,7 @@ namespace thermofem {
             swap(temporary);
         }
         /** @brief 从主机更新非零元素，保持稀疏结构不变。@param values 新数值。
-         * @pre 数量等于非零数且异步访问已结束。@return 无返回值。
+         * @pre 数量等于非零数且异步访问已结束。@note 无返回值。
          * @code matrix.copyValuesFromHost(entries); @endcode
          */
         void copyValuesFromHost(std::span<const T> values) { values_.copyFromHost(values); }
@@ -183,7 +183,7 @@ namespace thermofem {
     private:
         /** @brief 在分配前检查主机 CSR 输入。
          * @param rows 行数。@param columns 列数。@param offsets 行偏移。@param indices 列索引。
-         * @param count 非零数。@pre 无额外约束，非法输入抛异常。@return 无返回值。
+         * @param count 非零数。@pre 无额外约束，非法输入抛异常。@note 无返回值。
          * @code validate(2, 2, offsets, columns, 2); @endcode
          */
         static void validate(std::size_t rows, std::size_t columns, std::span<const Index> offsets,

@@ -70,7 +70,7 @@ namespace thermofem::linalg {
             return deviceCopy(vector.values());
         }
         /** @brief 将设备输出清零。@tparam T 精度。@param pointer 设备地址。@param count 元素数。
-         * @pre 地址有效且属于当前设备。@return 无返回值。@code zero(pointer, 3); @endcode
+         * @pre 地址有效且属于当前设备。@note 无返回值。@code zero(pointer, 3); @endcode
          */
         template <Scalar T>
         void zero(T* pointer, std::size_t count) {

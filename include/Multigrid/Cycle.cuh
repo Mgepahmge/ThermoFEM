@@ -27,7 +27,7 @@ namespace thermofem::multigrid {
     /** @brief 调度完整多重网格循环，不分配缓存。
      * @param kind 循环类型。@param level 起始层。@param operations 层运算适配器。
      * @param zeroInitial 是否丢弃初值。@pre 层次完整，不可并发访问同一缓存。
-     * @return 无返回值。
+     * @note 无返回值。
      * @details V/W 前平滑、限制残差、递归求误差、延拓并后平滑。W 第二次递归保留
      * 第一次结果，右端不变。F 对应参考的嵌套迭代：限制原右端、F 求粗初值、延拓覆盖
      * 本层解，再执行 V 修正。固定循环和平滑次数维持线性，不执行收敛判据。

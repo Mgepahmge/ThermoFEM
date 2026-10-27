@@ -8,7 +8,7 @@ namespace thermofem::detail {
     namespace {
         /** @brief 检查行区间及其列索引。@param rows 行数。@param columns 列数。@param count 非零数。
          * @param offsets 行偏移。@param indices 列索引。@param bad 错误标志。
-         * @pre 当前设备、有效数组。@return 无返回值。@code validate<<<1,256>>>(n,n,nz,rp,ci,bad); @endcode */
+         * @pre 当前设备、有效数组。@note 无返回值。@code validate<<<1,256>>>(n,n,nz,rp,ci,bad); @endcode */
         template <CsrIndex I>
         __global__ void validate(std::size_t rows, std::size_t columns, std::size_t count, const I* offsets,
                                  const I* indices, int* bad) {

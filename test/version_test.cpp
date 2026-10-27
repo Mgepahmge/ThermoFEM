@@ -11,7 +11,7 @@
  * @brief 检查版本查询接口返回的三个版本分量。
  * @details 无运行时参数；测试套件与用例名称由 GoogleTest 宏指定。
  * @pre 无额外约束，不要求初始化 CUDA 设备。
- * @return 无返回值，通过 GoogleTest 断言报告结果。
+ * @note 无返回值，通过 GoogleTest 断言报告结果。
  * @code{.sh}
  * ./build/test/thermofem_tests --gtest_filter=VersionTest.returnsInitialProjectVersion
  * @endcode

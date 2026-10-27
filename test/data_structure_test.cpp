@@ -213,7 +213,7 @@ namespace {
         }
     };
 
-    /** @brief 验证跨类型只复制数据与深拷贝赋值，无参数。@pre CUDA 可用。@return 无返回值。
+    /** @brief 验证跨类型只复制数据与深拷贝赋值，无参数。@pre CUDA 可用。@note 无返回值。
      * @code ./build/test/thermofem_tests --gtest_filter=*copyDataAndAssignment* @endcode
      */
     TEST_P(CudaTransferTest, copyDataAndAssignment) {
@@ -244,7 +244,7 @@ namespace {
     }
 
     /** @brief 验证转换保留数据、移动接管所有权及主机设备视图，无参数。
-     * @pre CUDA 可用。@return 无返回值。
+     * @pre CUDA 可用。@note 无返回值。
      * @code ./build/test/thermofem_tests --gtest_filter=*conversionAndMove* @endcode
      */
     TEST_P(CudaTransferTest, conversionAndMove) {
@@ -290,7 +290,7 @@ namespace {
                                                                   MemoryType::Mapped, MemoryType::Managed)));
 
     /** @brief 验证组合向量在全部内存策略配对下的所有权与复制语义，无参数。
-     * @pre CUDA 可用。@return 无返回值。
+     * @pre CUDA 可用。@note 无返回值。
      * @code ./build/test/thermofem_tests --gtest_filter=VectorTest.* @endcode
      */
     TEST(VectorTest, composedStoragePreservesOwnershipAndPolicy) {
@@ -345,7 +345,7 @@ namespace {
         }
     }
 
-    /** @brief 验证稠密矩阵布局与所有权，无参数。@pre CUDA 可用。@return 无返回值。
+    /** @brief 验证稠密矩阵布局与所有权，无参数。@pre CUDA 可用。@note 无返回值。
      * @code ./build/test/thermofem_tests --gtest_filter=DenseMatrixTest.storageAndValueSemantics @endcode */
     TEST(DenseMatrixTest, storageAndValueSemantics) {
         std::string reason;
@@ -375,7 +375,7 @@ namespace {
         EXPECT_EQ(moved.at(1, 2), 6);
     }
 
-    /** @brief 验证 CSR 三缓冲区的一致性及深拷贝，无参数。@pre CUDA 可用。@return 无返回值。
+    /** @brief 验证 CSR 三缓冲区的一致性及深拷贝，无参数。@pre CUDA 可用。@note 无返回值。
      * @code ./build/test/thermofem_tests --gtest_filter=CsrMatrixTest.storageAndValueSemantics @endcode
      */
     TEST(CsrMatrixTest, storageAndValueSemantics) {
@@ -416,7 +416,7 @@ namespace {
     }
 
     /** @brief 验证设备归属、上下文恢复以及跨设备复制的拒绝行为，无参数。
-     * @pre 至少两个 CUDA 设备可用。@return 无返回值。
+     * @pre 至少两个 CUDA 设备可用。@note 无返回值。
      * @code ./build/test/thermofem_tests --gtest_filter=BufferTest.deviceOwnership @endcode
      */
     TEST(BufferTest, deviceOwnership) {
