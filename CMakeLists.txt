@@ -19,7 +19,7 @@ include(CTest)
 find_package(CUDAToolkit 12.0 REQUIRED)
 option(THERMOFEM_BUILD_EXAMPLES "Build ThermoFEM examples" ON)
 
-add_library(thermofem STATIC src/version.cu src/DataStructure/Memory.cu src/LinearAlgebra/Backend.cu src/LinearAlgebra/IterationContext.cu)
+add_library(thermofem STATIC src/version.cu src/DataStructure/Memory.cu src/LinearAlgebra/Backend.cu src/LinearAlgebra/IterationContext.cu src/IO/MatrixMarket.cu)
 add_library(ThermoFEM::thermofem ALIAS thermofem)
 target_include_directories(thermofem PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
