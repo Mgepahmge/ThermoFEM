@@ -127,6 +127,25 @@ bash scripts/format.sh --check
 可通过 `CLANG_FORMAT=/path/to/clang-format` 指定程序。配置 CMake 时若找到 clang-format，
 还可使用 `cmake --build build --target format` 或 `format-check`。
 
+## 持续集成
+
+GitHub Actions 使用托管的 Ubuntu runner，仅执行代码格式检查与文档构建发布，不配置 CUDA 构建或 GPU 测试。
+代码格式检查在 push、Pull Request 或手动触发时执行，固定使用 clang-format 23.1.3。
+文档工作流在 main 分支 push 或手动触发时执行，直接调用 Doxygen，无需 CUDA Toolkit。
+
+生成的 HTML 通过 SSH 发布至 [ThermoFEM-Doc](https://github.com/Mgepahmge/ThermoFEM-Doc) 的 gh-pages 分支根目录。
+文档未变化时不创建提交；发布保留分支历史，并清除已删除的页面。
+
+首次配置由仓库维护者完成：
+
+1. 在文档仓库的 Settings → Deploy keys 添加专用 SSH 公钥，并启用 Allow write access。
+2. 在代码仓库 ThermoFEM 的 Settings → Secrets and variables → Actions 添加名为 `DOCS_DEPLOY_KEY` 的 secret，内容为对应的完整私钥。
+3. 首次工作流创建 gh-pages 分支后，在文档仓库 Settings → Pages 选择 Deploy from a branch，分支 gh-pages，目录 / (root)。
+
+文档站点地址为 <https://mgepahmge.github.io/ThermoFEM-Doc/>。
+私钥只存放在受保护的凭据文件和 Actions secret 中，不提交到任一仓库。
+工作流固定 GitHub 的 SSH 主机公钥并启用严格校验；GitHub 轮换主机公钥时需核对官方信息后更新工作流。
+
 ## 贡献
 
 本项目用于个人本科毕业设计，原则上不接受任何外部贡献，包括代码、文档或其他形式的提交；请勿提交 Pull Request。

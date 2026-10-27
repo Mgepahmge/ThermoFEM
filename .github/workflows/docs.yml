@@ -1,0 +1,49 @@
+name: Publish documentation
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-documentation
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install documentation tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y doxygen rsync
+      - name: Build documentation
+        run: bash scripts/build-docs.sh
+      - name: Configure SSH
+        env:
+          DOCS_DEPLOY_KEY: ${{ secrets.DOCS_DEPLOY_KEY }}
+        run: |
+          if [[ -z "$DOCS_DEPLOY_KEY" ]]; then
+            echo 'Missing repository secret: DOCS_DEPLOY_KEY' >&2
+            exit 1
+          fi
+          install -m 700 -d "$RUNNER_TEMP/docs-ssh"
+          umask 077
+          printf '%s\n' "$DOCS_DEPLOY_KEY" > "$RUNNER_TEMP/docs-ssh/id_ed25519"
+          ssh-keygen -y -f "$RUNNER_TEMP/docs-ssh/id_ed25519" > /dev/null
+          # GitHub 官方 https://api.github.com/meta 公布的 Ed25519 主机公钥。
+          printf '%s\n' 'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl' > "$RUNNER_TEMP/docs-ssh/known_hosts"
+          printf 'GIT_SSH_COMMAND=ssh -i "%s/docs-ssh/id_ed25519" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="%s/docs-ssh/known_hosts"\n' "$RUNNER_TEMP" "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Publish to documentation repository
+        run: bash scripts/publish-docs.sh
+      - name: Remove SSH credentials
+        if: always()
+        run: rm -rf -- "$RUNNER_TEMP/docs-ssh"
