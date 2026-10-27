@@ -62,7 +62,7 @@ auto* devicePointer = target.deviceData();
 向量长度直接取自存储，不维护重复的尺寸状态。复制与移动采用来源策略，
 仅数据复制保留目标策略及地址，转换策略具有强异常保证。
 常用存储操作由向量显式转发；跨存储抽象使用 `vector.values()`，该接口只读，
-避免外部替换向量内部的 Buffer。原先依赖 Vector 自动绑定 Buffer 引用的代码须改为显式访问。
+避免外部替换向量内部的 Buffer。需要 Buffer 接口时使用显式访问。
 数值运算属于 `LinearAlgebra` 层，不放入存储类。
 
 `DenseMatrix<T>` 使用行主序，元素 `(row, column)` 的偏移为 `row * columnCount() + column`。
@@ -108,11 +108,7 @@ const double values[]{2.0, 3.0};
 thermofem::CsrMatrix<double> matrix(2, 2, offsets, columns, values);
 ```
 
-## 验证
-
-`test/data_structure_test.cpp` 验证内存类型传播、16 种源目标组合的数据复制与转换、
-移动及自赋值、空对象、尺寸溢出、主机数组长度、稠密布局与 CSR 合法性。
-没有可用设备时，真实 CUDA 用例明确标记跳过，主机校验用例仍运行。
+## 运行示例
 
 `example-2` 在 global、mapped 和 managed 内存上实际发射 CUDA 内核，
 核对计算结果，并演示稠密矩阵和 CSR 存储。运行需要设备支持这三类内存：

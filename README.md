@@ -10,7 +10,7 @@ ThermoFEM 是本科毕业设计“基于有限元的热力学仿真求解器设�
 - 封装求解器接口并导出仿真结果，提供展示模型配置、求解过程和温度场结果的 Demo。
 - 通过典型算例与解析解或成熟仿真软件对比，验证计算精度与求解性能。
 
-目前已提供版本接口、主程序及基础数据结构：支持 global、pinned、mapped、managed 策略的 RAII CUDA Buffer，以及向量、行主序稠密矩阵和 CSR 稀疏矩阵。线性代数层使用 cuBLAS/cuSPARSE，提供命名函数与运算符。求解流程包括加权 Jacobi 平滑器、GPU 原生聚合 AMG 预条件子和右预条件 BiCGStab 求解器，通过独立基类的 setup/apply 接口组合，不使用 cuSOLVER。AMG 提供 V、W、F 三种循环。有限元组装与热传导仿真尚未实现。
+基础数据结构包括支持 global、pinned、mapped、managed 策略的 RAII CUDA Buffer，以及向量、行主序稠密矩阵和 CSR 稀疏矩阵。线性代数层使用 cuBLAS/cuSPARSE，提供命名函数与运算符。求解流程包括加权 Jacobi 平滑器、GPU 原生聚合 AMG 预条件子和右预条件 BiCGStab 求解器，通过独立基类的 setup/apply 接口组合，不使用 cuSOLVER。AMG 提供 V、W、F 三种循环。有限元组装与热传导仿真不在现有接口的功能范围内。
 
 ## 项目结构
 
@@ -100,8 +100,8 @@ target_link_libraries(your_target PRIVATE ThermoFEM::thermofem)
 基础数据结构的接口、内存策略、复制与移动语义及同步要求见 [基础数据结构](docs/data-structures.md)。
 线性代数接口及当前限制见 [线性代数](docs/linear-algebra.md)。
 分层接口、求解参数、异常保证及 V/W/F 语义见 [求解组件](docs/solver.md)。
-真实 CFD 矩阵的选取、复现方式及三种循环的验证结果见 [真实矩阵验证](docs/real-cases.md)。
-AMG 按参考原生路径在 GPU 上进行双向强图构造、两阶段匹配、图收缩、两轮单点吸收及粗矩阵坐标归并；限制、延拓和最多 64 阶的部分主元 LU 也在 GPU 上执行。较大终止层或奇异 LU 使用固定 Jacobi。矩阵执行上下文和现有平滑器的 setup 仍有规范化、对角校验的主机往返；独立同步接口也保留调用开销，未移植参考的耦合融合内核和 CUDA Graph，不能等同于参考原版性能。
+矩阵输入、命令行求解及输出含义见 [Matrix Market 用户手册](docs/matrix-market.md)。
+完整文档分类见 [文档目录](docs/index.md)。
 
 在任意目录执行项目脚本即可生成中文 Doxygen 文档：
 
