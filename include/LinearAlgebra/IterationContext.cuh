@@ -9,6 +9,17 @@ namespace thermofem::linalg {
 /** @brief 持有规范化矩阵快照，复用 cuBLAS/cuSPARSE 资源；不可复制。
  * @tparam T 浮点类型。@tparam I CSR 索引。
  * @details 输入工作向量必须为相同设备上的 global 向量。方法为同步操作。
+ * @par 资源与复用
+ * 构造时规范化并深拷贝矩阵，分配 cuBLAS/cuSPARSE 句柄、SpMV 描述符、占位向量和工作区。
+ * 后续 multiply 仅重新绑定输入输出地址，不重新分配描述符或工作区。
+ * 本类通过组合拥有这些资源，不继承矩阵；调用者可在构造完成后销毁原矩阵。
+ * @par 契约与同步
+ * 这是面向迭代缓存的低层接口，主动要求 global 向量；高层组件负责其他策略的暂存。
+ * 默认流执行并同步返回，自动选择所属设备并恢复调用方设备。描述符绑定可变，
+ * 因而同一实例不可并发调用。multiply/residual 输出不允许与输入别名。
+ * @par 适用范围
+ * 支持矩形 SpMV，向量长度受 cuBLAS 的 int 接口限制。零非零数矩阵走清零路径。
+ * 不包含收敛判断、平滑次数或多层递归，所有算法控制属于调用组件。
  * @code IterationContext<double> context(matrix); context.multiply(x, y); @endcode
  */
 template<Scalar T, CsrIndex I = int>

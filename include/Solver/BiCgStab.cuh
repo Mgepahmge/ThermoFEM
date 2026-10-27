@@ -19,6 +19,24 @@ template<linalg::Scalar T> struct BiCgStabOptions {
  * @details 不直接调用 CUDA 内核或库句柄。所有向量、矩阵运算通过独立接口执行。
  * 返回前总是重算真实残差；递推残差达到阈值但真实残差未达标时重启递推。
  * 实例不可并发调用。setup 失败使本求解器失效，必须重新成功 setup。
+ * @par 依赖与所有权
+ * BiCgStab 是 Solver，独占一个可替换的 Preconditioner 和一组 State 工作向量。
+ * 不继承预条件子、不直接访问其内部层次，也不直接发射 CUDA 内核。
+ * 预条件子必须在同一次 apply 内表示固定的线性动作，否则本算法的递推假设不成立。
+ * @par 数学约定
+ * 使用右预条件：先计算 phat=M^-1*p，再用 v=A*phat；第二方向同样计算 shat 和 t。
+ * x 始终是原方程的物理解，输入初值不作预条件变换。
+ * 停止阈值为 max(atol,rtol*||rhs||2)，返回报告使用真实残差 rhs-A*x。
+ * @par 可靠性与终止
+ * 递推残差只用于触发候选收敛检查；实际收敛必须通过重新计算的真实残差确认。
+ * 周期刷新或候选收敛校验失败后，以真实残差重置影子残差并重新开始方向递推。
+ * 零分母、零 rho 或零 omega 报告 Breakdown；非有限标量报告 NonFinite。
+ * 这些检测不能替代矩阵条件数分析，也不保证任意非奇异矩阵都能收敛。
+ * @par 生命周期与异常
+ * setup 保存矩阵快照并分配固定数量的长度为 n 的向量；外部矩阵随后可销毁。
+ * 新 setup 开始即清空旧 State，以免注入预条件子 setup 失败后出现状态不一致。
+ * apply 同步返回并保留输出存储；正常数值失败返回当前近似解和报告，调用或 CUDA
+ * 错误通过异常传播。抛异常时不会将内部迭代结果复制回外部 x。
  * @code BiCgStab<double> solver; solver.setup(a); auto result = solver.apply(b, x); @endcode
  */
 template<linalg::Scalar T, CsrIndex I = int> class BiCgStab final : public Solver<T, I> {
@@ -39,6 +57,10 @@ public:
     /** @brief 建立矩阵快照、工作向量和预条件子。@param matrix 系数矩阵。
      * @pre 非空有限值方阵，并满足所选预条件子的条件。@return 无返回值。
      * @code solver.setup(a); @endcode
+     * @details 顺序为：撤销就绪状态、检查方阵、建立执行上下文和缓存、初始化预条件子、
+     * 发布新状态。通过后两次 apply 可复用同一矩阵状态而求解不同右端项。
+     * @throws std::invalid_argument 输入或预条件条件不满足。
+     * @note 任一步失败都要求重新成功 setup；不承诺保留上一次可用状态。
      */
     void setup(const CsrMatrix<T, I>& matrix) override {
         state_.reset();
@@ -52,6 +74,11 @@ public:
      * @param x 输入输出近似解。@pre setup 成功，尺寸设备匹配。
      * @return 收敛、达到上限、递推崩溃或非有限数状态及真实残差。
      * @code auto result = solver.apply(b, x); @endcode
+     * @details rhs 和 x 先被分别暂存，支持两者别名。初值满足真实残差阈值时返回零次迭代。
+     * MaxIterations、Breakdown、NonFinite 都是正常报告，不应仅凭函数返回就认定求解成功。
+     * 零右端项时 relativeResidual_ 定义为绝对残差；通常应提供可达到的绝对容差。
+     * @throws std::logic_error 尚未成功 setup 或最近一次 setup 失败。
+     * @throws std::invalid_argument 向量尺寸或设备不匹配。
      */
     SolveResult<T> apply(const Vector<T>& rhs, Vector<T>& x) override {
         if (!state_) { throw std::logic_error("BiCGStab requires setup"); }
@@ -93,6 +120,10 @@ private:
     }
     /** @brief 在已分配工作向量上执行递推，无参数。@pre 状态完整。
      * @return 真实残差报告。@code auto result = solve(); @endcode
+     * @details fresh 标记首次方向或重启方向，避免使用前一轮无效的 p、v、rhoPrevious。
+     * 每轮先更新 alpha 方向；若中间残差已达阈值，跳过 omega 方向并校验真实残差。
+     * 否则执行第二次预条件和 SpMV，计算 omega 后更新解与残差。
+     * rhoPrevious 只在下一轮使用已有方向时参与递推。
      */
     SolveResult<T> solve() {
         auto& s = *state_;

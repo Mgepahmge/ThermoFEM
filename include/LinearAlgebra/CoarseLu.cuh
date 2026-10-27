@@ -6,6 +6,16 @@
 #include <cmath>
 namespace thermofem::linalg {
 /** @brief 使用部分主元 LU 求解有界的小规模粗层系统；不依赖 cuSOLVER。
+ * @details 构造时将 CSR 累加为行主序稠密矩阵，记录逐步主元交换并原地保存 LU。
+ * apply 仅应用交换、前代和回代，复用主机右端缓存；不会重新分解矩阵。
+ * 时间开销为构造 O(n^3)、每次求解 O(n^2)，空间 O(n^2)。本类不自行限定 n，
+ * 因而调用者必须在构造之前限制规模；AMG 通过 maxDenseCoarseRows_ 执行此限制。
+ * @par 数值与所有权
+ * 不引用来源矩阵，因子由对象独占。主元相对全局最大元素过小或因子非有限时拒绝分解。
+ * 该检查不是条件数估计；病态系统可能需要更高精度或不同粗层策略。
+ * @par 数据传输
+ * apply 下载 rhs 到主机缓存并上传解，支持输入输出别名、保留输出策略与地址。
+ * 同一实例的主机缓存可变，不支持并发 apply；不承担外层收敛判断。
  * @code CoarseLu<double> coarse(matrix); coarse.apply(rhs, x); @endcode
  */
 template<linalg::Scalar T> class CoarseLu {
