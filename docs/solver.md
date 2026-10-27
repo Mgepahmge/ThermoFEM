@@ -125,7 +125,7 @@ BiCGStab 的 setup 失败会清空就绪状态，因为注入预条件子的内�
 `<Solver/Cg.cuh>` 提供 `Cg<T,I>` 和 `CgOptions<T>`。默认组合恒等预条件子，
 对应普通 CG；也可注入 `std::unique_ptr<Preconditioner<T,I>>` 实现 PCG。
 矩阵必须对称正定，预条件动作必须固定、线性且对称正定。
-恒等预条件子满足 CG 的数学要求；现有 AMG 与 PCG 的相容性尚未保证。
+恒等预条件子满足 CG 的数学要求；使用 AMG 时还必须满足下述组合条件。
 
 ```cpp
 #include <Solver/Cg.cuh>
@@ -147,6 +147,51 @@ auto report = solver.apply(rhs, x);
 非正的 `r^T*z` 或 `p^T*A*p` 报告 Breakdown，非有限标量报告 NonFinite。
 这些检查不等价于对称性或正定性认证：setup 不进行全矩阵认证，调用方必须保证数学条件。
 所有向量和稀疏运算复用独立的 IterationContext，不使用 cuSOLVER。
+
+### AMG 作为 PCG 预条件子的前提
+
+PCG 要求的是实际应用的近似逆动作 `B: r -> AMG.apply(r)` 固定、线性、对称且正定，
+而不只是输入矩阵对称正定。AMG 也可服务于 BiCGStab，因此其合法配置范围比 PCG 的适用范围更宽。
+调用方负责选择满足条件的配置；setup 参数检查和 CG 的 Breakdown 检测均不构成数学认证。
+
+对于对称正定输入，使用以下条件构造适用于标准 PCG 的 V/W 循环：
+
+- 输入矩阵为有限值对称正定矩阵，边界条件处理保持对称性，并已消除零空间。
+  纯 Neumann 稳态系统须先约束参考温度或在适当子空间处理零空间，不能直接作为一般 SPD 系统使用。
+- 一次外层求解内保持 AMG 层次、参数、循环及平滑次数不变；apply 每次从零开始，
+  不使用依赖右端项或残差容差的可变内迭代。
+- 使用互为转置的限制和延拓以及 Galerkin 粗矩阵。当前聚合传输满足 `R=P^T`，
+  粗矩阵为 `Ac=P^T*A*P`；每个聚合非空使 P 满列秩，在精确算术下保持粗矩阵正定。
+- 选择 V 或 W 循环，并使前后平滑构成对称配对。使用内置 Jacobi 时，
+  前后采用相同正次数及相同权重；两侧均为零不能普遍保证预条件动作正定。
+  注入自定义平滑器时，必须另外保证前后动作的转置配对与稳定性，单纯次数相同并不足够。
+- 每层 Jacobi 均满足稳定权重条件。令该层系数矩阵为 A，对角矩阵为 D，使用
+  `0 < omega < 2 / lambda_max(D^(-1/2)*A*D^(-1/2))` 作为充分条件。
+  可用该最大特征值的可靠上界选择保守权重。配置允许的 `(0,2)` 仅是参数范围，
+  默认 `jacobiWeight_=0.75` 也不对任意 SPD 矩阵保证上述条件。
+- 粗层求解提供相容的固定对称正定动作。非奇异 SPD 粗矩阵的精确逆满足此条件；
+  当前主元 LU 在精确算术下实现这一逆动作，不要求必须使用 Cholesky。
+  若转入固定次数 Jacobi 回退，粗层也必须满足稳定权重条件，不能仅凭回退完成就认定相容。
+
+上述条件按精确算术给出；浮点归并、类型转换和 LU 求解存在舍入误差，
+还需根据精度与条件数选择合理的求解容差，保证各层数值有效。
+当前 F-cycle 使用嵌套初值后作 V 修正，一般不保证近似逆动作对称，
+不应直接按上述 V/W 条件用于标准 PCG。
+
+满足条件时，通过现有注入接口组合，无需单独的 PCG 类：
+
+```cpp
+// amgOptions 需满足各层权重、对称平滑和粗层求解条件。
+amgOptions.cycle_ = thermofem::multigrid::Cycle::V;
+amgOptions.preSweeps_ = amgOptions.postSweeps_ = 1;
+auto amg = std::make_unique<thermofem::Amg<double>>(amgOptions);
+thermofem::Cg<double> solver(cgOptions, std::move(amg));
+solver.setup(matrix);
+auto report = solver.apply(rhs, x);
+```
+
+一次求解收敛或少量方向上的正二次型不能证明预条件动作对称正定。
+无法保证这些前提时，可使用恒等预条件 CG，或在满足其自身条件时选用 BiCGStab。
 
 ## 独立运算接口
 

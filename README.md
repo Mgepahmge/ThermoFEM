@@ -114,7 +114,8 @@ bash scripts/build-docs.sh
 上述相对路径命令从项目根目录执行；从其他目录使用脚本的绝对路径。输出入口为 `build/docs/html/index.html`。如果配置 CMake 时已找到 Doxygen，也可执行 `cmake --build build --target docs`。
 
 `<Solver/Cg.cuh>` 提供默认使用恒等预条件子的 CG 求解器，用于对称正定矩阵。
-注入预条件子时，其动作也必须固定、线性且对称正定；现有 AMG 与 PCG 的相容性尚未验证。
+注入预条件子时，其动作也必须固定、线性且对称正定。
+AMG 配合 PCG 的循环、对称平滑、各层权重和粗层求解前提见 [求解组件](docs/solver.md)；默认参数并不对任意 SPD 矩阵保证相容。
 
 ## 代码格式
 
