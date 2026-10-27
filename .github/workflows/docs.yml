@@ -26,7 +26,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y doxygen rsync
       - name: Build documentation
-        run: bash scripts/build-docs.sh
+        run: |
+          doxygen --version
+          if ! bash scripts/build-docs.sh > "$RUNNER_TEMP/doxygen.log" 2>&1; then
+            cat "$RUNNER_TEMP/doxygen.log"
+            while IFS= read -r line; do
+              line="${line//'%'/'%25'}"
+              line="${line//$'\r'/'%0D'}"
+              printf '::error::%s\n' "$line"
+            done < <(head -n 30 "$RUNNER_TEMP/doxygen.log")
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/doxygen.log"
       - name: Configure SSH
         env:
           DOCS_DEPLOY_KEY: ${{ secrets.DOCS_DEPLOY_KEY }}
